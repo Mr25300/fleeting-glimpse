@@ -1,0 +1,43 @@
+export class Vector3 {
+  constructor(
+    public readonly x: number,
+    public readonly y: number,
+    public readonly z: number
+  ) {}
+
+  public add(vector: Vector3): Vector3 {
+    return new Vector3(this.x + vector.x, this.y + vector.y, this.z + vector.z);
+  }
+
+  public subtract(vector: Vector3): Vector3 {
+    return new Vector3(this.x - vector.x, this.y - vector.y, this.z - vector.z);
+  }
+
+  public multiply(scalar: number): Vector3 {
+    return new Vector3(this.x * scalar, this.y * scalar, this.z * scalar);
+  }
+
+  public divide(divisor: number): Vector3 {
+    return new Vector3(this.x / divisor, this.y / divisor, this.z / divisor);
+  }
+
+  public magnitude(): number {
+    return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2);
+  }
+
+  public unit(): Vector3 {
+    return this.divide(this.magnitude());
+  }
+
+  public dot(vector: Vector3): number {
+    return this.x * vector.x + this.y * vector.y + this.z * vector.z;
+  }
+
+  public cross(vector: Vector3): Vector3 {
+    return new Vector3(
+      this.y * vector.z - this.z * vector.y,
+      this.z * vector.x - this.x * vector.z,
+      this.x * vector.y - this.y * vector.x
+    );
+  }
+}

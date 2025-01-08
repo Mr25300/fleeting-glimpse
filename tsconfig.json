@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "rootDir": "./src",
+    "outDir": "./dist", //optionally use “” to not use an output folder
+    "sourceMap": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "module": "ES6"
+  },
+  "include": [
+    "src/**/*"
+  ],
+}
