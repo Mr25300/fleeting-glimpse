@@ -8,7 +8,7 @@ export class Triangle {
   ) {}
 
   public getNormal(): Vector3 {
-    return this.v1.subtract(this.v1).cross(this.v3.subtract(this.v2));
+    return this.v2.subtract(this.v1).cross(this.v3.subtract(this.v2));
   }
 }
 
