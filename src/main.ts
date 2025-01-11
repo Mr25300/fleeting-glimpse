@@ -1,7 +1,15 @@
+import { Ray, Triangle } from "./triangle.js";
 import { Vector3 } from "./vector3.js";
 
-const vec1 = new Vector3(1, 0, 0);
-const vec2 = new Vector3(0, 1, 0);
-const vec3 = vec1.cross(vec2);
+const triangle = new Triangle(
+  new Vector3(0, 0, -1),
+  new Vector3(1, 2, 3),
+  new Vector3(-1, 0, 2)
+);
 
-console.log(vec3);
+const ray = new Ray(
+  new Vector3(1, 2, 1),
+  new Vector3(-1, -1.5, 1).unit()
+);
+
+console.log(ray.getIntersectionPoint(triangle));
