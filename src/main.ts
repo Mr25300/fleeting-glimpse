@@ -8,8 +8,8 @@ const triangle = new Triangle(
 );
 
 const ray = new Ray(
-  new Vector3(1, 2, 1),
-  new Vector3(-1, -1.5, 1).unit()
+  new Vector3(-1, 2, 1),
+  new Vector3(1, -1.5, 0).unit()
 );
 
 console.log(ray.getIntersectionPoint(triangle));

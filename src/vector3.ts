@@ -1,8 +1,8 @@
-export class Vector3 {
+export class Vector3 { // Consider general vector class which stores values in float32array
   constructor(
-    public readonly x: number,
-    public readonly y: number,
-    public readonly z: number
+    public readonly x: number = 0,
+    public readonly y: number = 0,
+    public readonly z: number = 0
   ) {}
 
   public add(vector: Vector3): Vector3 {
