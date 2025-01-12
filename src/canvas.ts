@@ -62,14 +62,14 @@ export class Canvas {
   }
 
   private drawPoint(point: Vector3): void {
-    const pX: number = this.width * (point.x / point.z + 1) / 2;
-    const pY: number = this.height * (1 - (point.y / point.z + 1) / 2);
+    const pX: number = this.width * (point.x + 1) / 2;
+    const pY: number = this.height * (1 - (point.y + 1) / 2);
 
-    const color: number = (1 - point.z / 10) * 255; // have different color depending on normal direction and store in point data
+    const color: number = 255;//(1 - point.z / 100) * 255; // have different color depending on normal direction and store in point data
 
     this.context.fillStyle = `rgb(${color}, ${color}, ${color})`;
     this.context.beginPath();
-    this.context.arc(pX, pY, 20 / point.z, 0, Math.PI * 2);
+    this.context.arc(pX, pY, 30 / point.z, 0, Math.PI * 2);
     this.context.fill();
   }
 
@@ -80,20 +80,20 @@ export class Canvas {
     this.context.fillRect(0, 0, this.element.width, this.element.height);
 
     for (const point of Game.instance.points) {
-      const camToPoint: Ray = new Ray(point, Game.instance.camera.position.subtract(point).unit());
-      let somethingInTheWay: boolean = false
+      // const camToPoint: Ray = new Ray(point, Game.instance.camera.position.subtract(point).unit);
+      // let somethingInTheWay: boolean = false
 
-      for (const triangle of Game.instance.triangles) {
-        const t: number | undefined = camToPoint.getIntersectionPoint(triangle);
+      // for (const triangle of Game.instance.triangles) {
+      //   const t: number | undefined = camToPoint.getIntersectionPoint(triangle);
 
-        if (t !== undefined && t > 0) {
-          somethingInTheWay = true;
+      //   if (t !== undefined && t > 0) {
+      //     somethingInTheWay = true;
 
-          break;
-        }
-      }
+      //     break;
+      //   }
+      // }
 
-      if (somethingInTheWay) continue;
+      // if (somethingInTheWay) continue;
 
       const result: Vector3 = transformationMatrix.apply(point);
       if (result.z < 0) continue;

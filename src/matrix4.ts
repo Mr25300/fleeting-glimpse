@@ -135,7 +135,7 @@ export class Matrix4 {
       newValues[r] = dotSum;
     }
 
-    return new Vector3(newValues[0], newValues[1], newValues[2]);
+    return new Vector3(newValues[0] / newValues[3], newValues[1] / newValues[3], newValues[2]);
   }
 
   public translate(translation: Vector3): Matrix4 {
@@ -156,6 +156,14 @@ export class Matrix4 {
       this.values[4], this.values[5], this.values[6], 0,
       this.values[8], this.values[9], this.values[10], 0,
       0, 0, 0, 1
+    );
+  }
+
+  public get angles(): Vector3 {
+    return new Vector3(
+      Math.atan2(this.values[9], this.values[10]),
+      Math.asin(-this.values[8]),
+      Math.atan2(this.values[4], this.values[0])
     );
   }
 

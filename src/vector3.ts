@@ -21,12 +21,12 @@ export class Vector3 { // Consider general vector class which stores values in f
     return new Vector3(this.x / divisor, this.y / divisor, this.z / divisor);
   }
 
-  public magnitude(): number {
+  public get magnitude(): number {
     return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2);
   }
 
-  public unit(): Vector3 {
-    return this.divide(this.magnitude());
+  public get unit(): Vector3 {
+    return this.divide(this.magnitude);
   }
 
   public dot(vector: Vector3): number {

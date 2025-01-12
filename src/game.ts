@@ -156,7 +156,7 @@ export class Game extends Gameloop {
     // this.triangle = new Triangle(new Vector3(-2, -2, 0), new Vector3(2, -2, 0), new Vector3(0, 2, 0));
     // this.points.push(this.triangle.v0, this.triangle.v1, this.triangle.v2);
 
-    loadObjFromPath("res/assets/cube.obj").then((value: Triangle[]) => {
+    loadObjFromPath("res/assets/testmap.obj").then((value: Triangle[]) => {
       this.triangles = value;
     });
   }
@@ -169,9 +169,9 @@ export class Game extends Gameloop {
     if (this.controller.controlActive(Control.moveL)) moveDir = moveDir.add(new Vector3(-1, 0, 0));
     if (this.controller.controlActive(Control.moveR)) moveDir = moveDir.add(new Vector3(1, 0, 0));
 
-    if (moveDir.magnitude() === 0) return;
+    if (moveDir.magnitude === 0) return;
 
-    this.camera.position = this.camera.position.add(this.camera.rotation.apply(moveDir).unit().multiply(2 * deltaTime));
+    this.camera.position = this.camera.position.add(this.camera.rotation.apply(moveDir).unit.multiply(2 * deltaTime));
   }
 
   protected render(): void {
