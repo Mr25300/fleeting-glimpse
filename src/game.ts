@@ -1,7 +1,7 @@
-import { Camera, Canvas } from "./canvas.js";
+import { Camera } from "./camera.js";
+import { Canvas } from "./canvas.js";
 import { Control, Controller } from "./controller.js";
-import { Matrix4 } from "./matrix4.js";
-import { Ray, Triangle } from "./triangle.js";
+import { Mesh } from "./mesh.js";
 import { Vector3 } from "./vector3.js";
 
 /** Handle game loop */
@@ -62,79 +62,10 @@ export abstract class Gameloop {
   protected abstract render(): void;
 }
 
-async function loadObjFromPath(url: string): Promise<Triangle[]> {
-  try {
-    const response = await fetch(url);  // Fetch the OBJ file from the path URL
-    if (!response.ok) {
-      throw new Error(`Failed to fetch the OBJ file: ${response.statusText}`);
-    }
-    
-    const objText = await response.text();  // Get the content of the OBJ file as text
-    return parseObj(objText);  // Parse the OBJ content and return the triangles
-  } catch (error) {
-    console.error('Error loading OBJ file:', error);
-    return [];
-  }
-}
-
-function parseObj(objText: string): Triangle[] {
-  const vertices: Vector3[] = [];
-  const faces: number[][] = [];
-
-  const lines = objText.split('\n');
-  lines.forEach(line => {
-    const parts = line.trim().split(/\s+/);  // Split by whitespace
-    if (parts.length === 0) return;
-
-    if (parts[0] === 'v') {
-      // This is a vertex line: v x y z
-      const x = parseFloat(parts[1]);
-      const y = parseFloat(parts[2]);
-      const z = parseFloat(parts[3]);
-      vertices.push(new Vector3(x, y, z));
-    } else if (parts[0] === 'f') {
-      // This is a face line: f v1 v2 v3 or f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 ...
-      // Handle both triangle and quad faces (more vertices can be present)
-      const faceVertices: number[] = [];
-      for (let i = 1; i < parts.length; i++) {
-        const vertexData = parts[i].split('/')[0]; // Ignore texture and normal data for now
-        const vertexIndex = parseInt(vertexData) - 1; // OBJ is 1-based, so subtract 1
-        faceVertices.push(vertexIndex);
-      }
-
-      // Split faces into triangles if there are more than 3 vertices
-      if (faceVertices.length === 3) {
-        faces.push(faceVertices); // Directly add triangle
-      } else if (faceVertices.length === 4) {
-        // For quads, create two triangles
-        faces.push([faceVertices[0], faceVertices[1], faceVertices[2]]);
-        faces.push([faceVertices[0], faceVertices[2], faceVertices[3]]);
-      } else {
-        // For polygons with more than 4 vertices, triangulate the polygon (basic method)
-        for (let i = 1; i < faceVertices.length - 1; i++) {
-          faces.push([faceVertices[0], faceVertices[i], faceVertices[i + 1]]);
-        }
-      }
-    }
-  });
-
-  // Create triangles based on the vertices and faces
-  const triangles: Triangle[] = [];
-  faces.forEach(face => {
-    const v0 = vertices[face[0]];
-    const v1 = vertices[face[1]];
-    const v2 = vertices[face[2]];
-    triangles.push(new Triangle(v0, v1, v2));
-  });
-
-  return triangles;
-}
-
 export class Game extends Gameloop {
   private static _instance: Game;
 
-  public readonly points: Vector3[] = [];
-  public triangles: Triangle[];
+  public meshes: Mesh[] = [];
 
   public readonly canvas: Canvas = new Canvas();
   public readonly camera: Camera = new Camera();
@@ -148,7 +79,9 @@ export class Game extends Gameloop {
     return Game._instance;
   }
 
-  public init(): void {
+  public async init(): Promise<void> {
+    await this.canvas.init();
+
     this.start();
 
     this.controller = new Controller();
@@ -156,9 +89,7 @@ export class Game extends Gameloop {
     // this.triangle = new Triangle(new Vector3(-2, -2, 0), new Vector3(2, -2, 0), new Vector3(0, 2, 0));
     // this.points.push(this.triangle.v0, this.triangle.v1, this.triangle.v2);
 
-    loadObjFromPath("res/assets/testmap.obj").then((value: Triangle[]) => {
-      this.triangles = value;
-    });
+    this.meshes.push(Mesh.fromFilePath("res/assets/testmap.obj"));
   }
 
   protected update(deltaTime: number): void {

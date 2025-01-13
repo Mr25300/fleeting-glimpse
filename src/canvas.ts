@@ -1,104 +1,156 @@
 import { Game } from "./game.js";
 import { Matrix4 } from "./matrix4.js";
-import { Ray } from "./triangle.js";
+import { ShaderProgram } from "./shaderprogram.js";
 import { Vector3 } from "./vector3.js";
 
-export class Camera {
-  private Z_NEAR: number = 0.01;
-  private Z_FAR: number = 10000;
-
-  public fov: number = 70;
-  public yaw: number = 0;
-  public pitch: number = 0;
-  public roll: number = 0;
-  public position: Vector3 = new Vector3(0, 0, 2);
-  public rotation: Matrix4 = Matrix4.identity;
-
-  public getTransformationMatrix(aspectRatio: number): Matrix4 {
-    const projectionMatrix: Matrix4 = Matrix4.fromPerspective(aspectRatio, this.fov, this.Z_NEAR, this.Z_FAR);
-
-    return projectionMatrix.multiply(this.rotation.transpose().translate(this.position.multiply(-1)));
-  }
-
-  public rotate(yaw: number, pitch: number): void {
-    this.yaw = (this.yaw + yaw) % (2 * Math.PI);
-    this.pitch = Math.min(Math.max(this.pitch + pitch, -Math.PI / 2), Math.PI / 2);
-    this.rotation = Matrix4.fromRotation(this.yaw, this.pitch, this.roll);
-  }
-}
-
-export class Point {
-  constructor(
-    public readonly position: Vector3,
-    public readonly normal: Vector3
-  ) {}
-}
-
+/** Encapsulates the game"s screen and all relevant functionality. */
 export class Canvas {
   private element: HTMLCanvasElement;
-  private context: CanvasRenderingContext2D;
+  private gl: WebGL2RenderingContext;
 
-  private width: number;
+  public readonly shader: ShaderProgram;
+
+  /** The square vertex buffer used for all sprites. */
+  private maxDotCount: number = 1000000;
+  private dotCount: number = 0;
+  private dotVertexBuffer: WebGLBuffer;
+  private dotPositionBuffer: WebGLBuffer;
+  private dotNormalBuffer: WebGLBuffer;
+
   private height: number;
+  private width: number;
+  private aspectRatio: number;
 
   constructor() {
-    this.element = document.getElementById("gameScreen") as HTMLCanvasElement;
-    this.context = this.element.getContext("2d")!;
+    this.element = document.getElementById("game-screen") as HTMLCanvasElement;
+    
+    // Get gl2 or gl context
+    this.gl = this.element.getContext("webgl2") as WebGL2RenderingContext;
+    if (!this.gl) throw new Error("Failed to get GL context.");
+
+    // Create the shader program
+    this.shader = new ShaderProgram(this.gl);
+
+    // Set webgl settings
+    this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
     this.updateDimensions();
 
+    // Listen to canvas resizing to update dimensions
     new ResizeObserver(() => {
       this.updateDimensions();
 
     }).observe(this.element);
   }
 
+  public async init(): Promise<void> {
+    this.createDotVertexBuffer();
+
+    // Wait for shader to load the vertex and fragment shaders
+    await this.shader.initShaders("res/shaders/vertex.glsl", "res/shaders/fragment.glsl");
+
+    this.shader.use();
+
+    this.shader.createAttrib("vertexPos"); // Create the attrib buffer for vertices
+    this.shader.createAttrib("dotPos");
+    this.shader.createAttrib("dotNormal");
+
+    // Create all necessary uniforms for the vertex shader
+    this.shader.createUniform("viewMatrix");
+    this.shader.createUniform("projectionMatrix");
+    this.shader.createUniform("lightDirection");
+  }
+
+  /**
+   * Creates a webgl buffer with relevant data.
+   * @param data The `Float32Array` buffer data.
+   * @returns A webgl buffer.
+   */
+  public createBuffer(data: Float32Array): WebGLBuffer {
+    const buffer: WebGLBuffer | null = this.gl.createBuffer();
+    if (!buffer) throw new Error("Failed to create buffer.");
+
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer); // ELEMENT_ARRAY_BUFFER for index buffer
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
+
+    return buffer;
+  }
+
+  /**
+   * Deletes an existing webgl buffer.
+   * @param buffer The buffer to be deleted.
+   */
+  public deleteBuffer(buffer: WebGLBuffer): void {
+    this.gl.deleteBuffer(buffer);
+  }
+
+  /**
+   * Creates the universal vertex buffer to be used by all sprites, being a square with width and height 1.
+   */
+  private createDotVertexBuffer(): void {
+    this.dotVertexBuffer = this.createBuffer(new Float32Array([
+      0, 0, -0.5,
+      0.5, 0, 0,
+      -0.5, 0, 0,
+      0, 0, 0.5
+    ]));
+
+    this.dotPositionBuffer = this.createBuffer(new Float32Array(this.maxDotCount * 3));
+    this.dotNormalBuffer = this.createBuffer(new Float32Array(this.maxDotCount * 3));
+  }
+
+  public createDot(position: Vector3, normal: Vector3): void {
+    const positionData: Float32Array = new Float32Array([position.x, position.y, position.z]);
+    const normalData: Float32Array = new Float32Array([normal.x, normal.y, normal.z]);
+
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.dotPositionBuffer);
+    this.gl.bufferSubData(this.gl.ARRAY_BUFFER, this.dotCount * 3 * Float32Array.BYTES_PER_ELEMENT, positionData);
+
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.dotNormalBuffer);
+    this.gl.bufferSubData(this.gl.ARRAY_BUFFER, this.dotCount * 3 * Float32Array.BYTES_PER_ELEMENT, normalData);
+
+    this.dotCount++;
+  }
+
+  /**
+   * Updates the canvas dimensions and webgl viewport based on its element"s properties.
+   */
   private updateDimensions(): void {
     this.width = this.element.clientWidth;
     this.height = this.element.clientHeight;
 
     this.element.width = this.width;
     this.element.height = this.height;
+    this.aspectRatio = this.width / this.height;
+
+    this.gl.viewport(0, 0, this.width, this.height);
   }
 
-  private drawPoint(point: Vector3): void {
-    const pX: number = this.width * (point.x + 1) / 2;
-    const pY: number = this.height * (1 - (point.y + 1) / 2);
-
-    const color: number = 255;//(1 - point.z / 100) * 255; // have different color depending on normal direction and store in point data
-
-    this.context.fillStyle = `rgb(${color}, ${color}, ${color})`;
-    this.context.beginPath();
-    this.context.arc(pX, pY, 30 / point.z, 0, Math.PI * 2);
-    this.context.fill();
-  }
-
+  /**
+   * Draw all sprite models and collision objects to the canvas.
+   */
   public render(): void {
-    const transformationMatrix = Game.instance.camera.getTransformationMatrix(this.width / this.height);
+    // Clear screen
+    this.gl.clearColor(0, 0, 0, 1);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT | this.gl.STENCIL_BUFFER_BIT);
 
-    this.context.fillStyle = "black";
-    this.context.fillRect(0, 0, this.element.width, this.element.height);
+    // The matrix for screen scaling and camera translation
+    const projectionMatrix: Matrix4 = Game.instance.camera.getViewMatrix();
 
-    for (const point of Game.instance.points) {
-      // const camToPoint: Ray = new Ray(point, Game.instance.camera.position.subtract(point).unit);
-      // let somethingInTheWay: boolean = false
+    // Set necessary attrib buffers and uniforms for sprite rendering
+    this.shader.use();
+    this.shader.setUniformMatrix("viewMatrix", Game.instance.camera.getViewMatrix());
+    this.shader.setUniformMatrix("projectionMatrix", Game.instance.camera.getProjectionMatrix(this.aspectRatio));
+    this.shader.setUniformVector("lightDirection", new Vector3(0, -1, -0.5));
 
-      // for (const triangle of Game.instance.triangles) {
-      //   const t: number | undefined = camToPoint.getIntersectionPoint(triangle);
+    this.shader.setAttribBuffer("vertexPos", this.dotVertexBuffer, 3, 0, 0);
+    this.shader.setAttribBuffer("dotPos", this.dotPositionBuffer, 3, 0, 0, 1);
+    this.shader.setAttribBuffer("dotNormal", this.dotNormalBuffer, 3, 0, 0, 1);
 
-      //   if (t !== undefined && t > 0) {
-      //     somethingInTheWay = true;
+    this.gl.drawArraysInstanced(this.gl.TRIANGLE_STRIP, 0, 4, this.dotCount);
 
-      //     break;
-      //   }
-      // }
-
-      // if (somethingInTheWay) continue;
-
-      const result: Vector3 = transformationMatrix.apply(point);
-      if (result.z < 0) continue;
-
-      this.drawPoint(result);
-    }
+    // console.log(this.dotCount);
   }
 }

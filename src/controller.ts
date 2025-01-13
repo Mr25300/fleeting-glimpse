@@ -1,5 +1,6 @@
 import { Game } from "./game.js";
 import { Matrix4 } from "./matrix4.js";
+import { RaycastInfo } from "./mesh.js";
 import { Ray } from "./triangle.js";
 
 export enum Control {
@@ -17,24 +18,19 @@ export class Controller {
     document.addEventListener("click", () => {
       document.body.requestPointerLock();
 
-      for (let i = 0; i < 200; i++) {
+      for (let i = 0; i < 1000; i++) {
         const lineDirection: Matrix4 = Game.instance.camera.rotation.rotate(0, 0, 2 * Math.PI * Math.random()).rotate(0, 10 * Math.PI / 180 * Math.random(), 0);
-
         const ray = new Ray(Game.instance.camera.position, lineDirection.lookVector);
 
-        let minT: number = Infinity;
-        let found: boolean = false;
+        let currentInfo: RaycastInfo | undefined;
 
-        for (const triangle of Game.instance.triangles) {
-          const t: number | undefined = ray.getIntersectionPoint(triangle);
+        for (const mesh of Game.instance.meshes) {
+          const info: RaycastInfo | undefined = mesh.raycast(ray);
 
-          if (t !== undefined && t > 0 && t < minT) {
-            minT = t;
-            found = true;
+          if (info) {
+            Game.instance.canvas.createDot(info.position, info.normal);
           }
         }
-
-        if (found) Game.instance.points.push(ray.getPoint(minT));
       }
     });
 

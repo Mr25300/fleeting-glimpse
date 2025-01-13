@@ -45,7 +45,7 @@ export class Ray {
 
     // [-D, V1 - V0, V2 - V0][t, u, v] = O - V0
     // [-D, E1, E2][t, u, v] = T
-
+    
     const edge1: Vector3 = triangle.v1.subtract(triangle.v0); // The edge vector going from vertex 0 to 1 (E1)
     const edge2: Vector3 = triangle.v2.subtract(triangle.v0); // The edge vector going from vertex 0 to 2 (E2)
     const normal: Vector3 = edge1.cross(edge2); // The normal of the triangle

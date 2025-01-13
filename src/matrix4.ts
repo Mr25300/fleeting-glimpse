@@ -178,4 +178,8 @@ export class Matrix4 {
   public get rightVector(): Vector3 {
     return new Vector3(this.values[0], this.values[4], this.values[8]);
   }
+
+  public glFormat(): Float32Array {
+    return this.transpose().values;
+  }
 }
