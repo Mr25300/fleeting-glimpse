@@ -13,7 +13,7 @@ export class Camera {
   public rotation: Matrix4 = Matrix4.identity;
 
   public getViewMatrix(): Matrix4 {
-    return this.rotation.transpose().translate(this.position.multiply(-1));
+    return Matrix4.fromPosition(this.position).multiply(this.rotation);
   }
 
   public getProjectionMatrix(aspectRatio: number): Matrix4 {

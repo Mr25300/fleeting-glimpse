@@ -136,8 +136,8 @@ export class Canvas {
     this.gl.clearColor(0, 0, 0, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT | this.gl.STENCIL_BUFFER_BIT);
 
-    // The matrix for screen scaling and camera translation
-    const projectionMatrix: Matrix4 = Game.instance.camera.getViewMatrix();
+    // DRAW BLACK TRIANGLES BEFOREHAND SO THAT POINTS BEHIND THEM WILL BE OCCLUDED
+    // DRAW POINTS SLIGHTLY FORWARD IN THE NORMAL DIRECTION SO THEY DONT CLIP WITH THE BLACK TRIANGLES
 
     // Set necessary attrib buffers and uniforms for sprite rendering
     this.shader.use();
