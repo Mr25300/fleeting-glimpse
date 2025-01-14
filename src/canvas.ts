@@ -8,7 +8,8 @@ export class Canvas {
   private element: HTMLCanvasElement;
   private gl: WebGL2RenderingContext;
 
-  public readonly shader: ShaderProgram;
+  private dotShader: ShaderProgram;
+  private shapeShader: ShaderProgram;
 
   /** The square vertex buffer used for all sprites. */
   private maxDotCount: number = 1000000;
@@ -29,7 +30,8 @@ export class Canvas {
     if (!this.gl) throw new Error("Failed to get GL context.");
 
     // Create the shader program
-    this.shader = new ShaderProgram(this.gl);
+    this.dotShader = new ShaderProgram(this.gl);
+    this.shapeShader = new ShaderProgram(this.gl);
 
     // Set webgl settings
     this.gl.enable(this.gl.DEPTH_TEST);
@@ -49,18 +51,24 @@ export class Canvas {
     this.createDotVertexBuffer();
 
     // Wait for shader to load the vertex and fragment shaders
-    await this.shader.initShaders("res/shaders/vertex.glsl", "res/shaders/fragment.glsl");
+    await Promise.all([
+      this.dotShader.initShaders("res/shaders/dotVertex.glsl", "res/shaders/dotFragment.glsl"),
+      this.shapeShader.initShaders("res/shaders/shapeVertex.glsl", "res/shaders/shapeFragment.glsl")
+    ]);
 
-    this.shader.use();
+    this.dotShader.use();
+    this.dotShader.createAttrib("vertexPos");
+    this.dotShader.createAttrib("dotPos");
+    this.dotShader.createAttrib("dotNormal");
+    this.dotShader.createUniform("viewMatrix");
+    this.dotShader.createUniform("projectionMatrix");
+    this.dotShader.createUniform("lightDirection");
 
-    this.shader.createAttrib("vertexPos"); // Create the attrib buffer for vertices
-    this.shader.createAttrib("dotPos");
-    this.shader.createAttrib("dotNormal");
-
-    // Create all necessary uniforms for the vertex shader
-    this.shader.createUniform("viewMatrix");
-    this.shader.createUniform("projectionMatrix");
-    this.shader.createUniform("lightDirection");
+    this.shapeShader.use();
+    this.shapeShader.createAttrib("vertexPos");
+    this.shapeShader.createUniform("meshTransform");
+    this.shapeShader.createUniform("viewMatrix");
+    this.shapeShader.createUniform("projectionMatrix");
   }
 
   /**
@@ -68,12 +76,14 @@ export class Canvas {
    * @param data The `Float32Array` buffer data.
    * @returns A webgl buffer.
    */
-  public createBuffer(data: Float32Array): WebGLBuffer {
+  public createBuffer(data: Float32Array | Uint16Array, index?: boolean): WebGLBuffer {
     const buffer: WebGLBuffer | null = this.gl.createBuffer();
     if (!buffer) throw new Error("Failed to create buffer.");
 
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer); // ELEMENT_ARRAY_BUFFER for index buffer
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
+    const type: number = index ? this.gl.ELEMENT_ARRAY_BUFFER : this.gl.ARRAY_BUFFER;
+
+    this.gl.bindBuffer(type, buffer); // ELEMENT_ARRAY_BUFFER for index buffer
+    this.gl.bufferData(type, data, this.gl.STATIC_DRAW);
 
     return buffer;
   }
@@ -136,18 +146,34 @@ export class Canvas {
     this.gl.clearColor(0, 0, 0, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT | this.gl.STENCIL_BUFFER_BIT);
 
+    const viewMatrix: Matrix4 = Game.instance.camera.getViewMatrix();
+    const projectionMatrix: Matrix4 = Game.instance.camera.getProjectionMatrix(this.aspectRatio);
+
     // DRAW BLACK TRIANGLES BEFOREHAND SO THAT POINTS BEHIND THEM WILL BE OCCLUDED
     // DRAW POINTS SLIGHTLY FORWARD IN THE NORMAL DIRECTION SO THEY DONT CLIP WITH THE BLACK TRIANGLES
+    this.shapeShader.use();
+
+    this.shapeShader.setUniformMatrix("viewMatrix", viewMatrix);
+    this.shapeShader.setUniformMatrix("projectionMatrix", projectionMatrix);
+
+    for (const mesh of Game.instance.meshes) {
+      this.shapeShader.setUniformMatrix("meshTransform", mesh.getTransformation());
+      this.shapeShader.setAttribBuffer("vertexPos", mesh.vertexBuffer, 3, 0, 0);
+
+      this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
+      this.gl.drawElements(this.gl.TRIANGLES, mesh.triangleCount * 3, this.gl.UNSIGNED_SHORT, 0);
+    }
 
     // Set necessary attrib buffers and uniforms for sprite rendering
-    this.shader.use();
-    this.shader.setUniformMatrix("viewMatrix", Game.instance.camera.getViewMatrix());
-    this.shader.setUniformMatrix("projectionMatrix", Game.instance.camera.getProjectionMatrix(this.aspectRatio));
-    this.shader.setUniformVector("lightDirection", new Vector3(0, -1, -0.5));
+    this.dotShader.use();
 
-    this.shader.setAttribBuffer("vertexPos", this.dotVertexBuffer, 3, 0, 0);
-    this.shader.setAttribBuffer("dotPos", this.dotPositionBuffer, 3, 0, 0, 1);
-    this.shader.setAttribBuffer("dotNormal", this.dotNormalBuffer, 3, 0, 0, 1);
+    this.dotShader.setUniformMatrix("viewMatrix", viewMatrix);
+    this.dotShader.setUniformMatrix("projectionMatrix", projectionMatrix);
+    this.dotShader.setUniformVector("lightDirection", new Vector3(0, -1, 0));
+
+    this.dotShader.setAttribBuffer("vertexPos", this.dotVertexBuffer, 3, 0, 0);
+    this.dotShader.setAttribBuffer("dotPos", this.dotPositionBuffer, 3, 0, 0, 1);
+    this.dotShader.setAttribBuffer("dotNormal", this.dotNormalBuffer, 3, 0, 0, 1);
 
     this.gl.drawArraysInstanced(this.gl.TRIANGLE_STRIP, 0, 4, this.dotCount);
 
