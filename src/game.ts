@@ -1,7 +1,7 @@
 import { Camera } from "./camera.js";
 import { Canvas } from "./canvas.js";
 import { Control, Controller } from "./controller.js";
-import { Mesh } from "./mesh.js";
+import { Mesh, Triangle } from "./mesh.js";
 import { Vector3 } from "./vector3.js";
 
 /** Handle game loop */
@@ -88,8 +88,9 @@ export class Game extends Gameloop {
 
     // this.triangle = new Triangle(new Vector3(-2, -2, 0), new Vector3(2, -2, 0), new Vector3(0, 2, 0));
     // this.points.push(this.triangle.v0, this.triangle.v1, this.triangle.v2);
-
-    this.meshes.push(Mesh.fromFilePath("res/assets/testmap.obj"));
+    
+    const mesh: Mesh = await Mesh.fromFilePath("res/assets/testmap.obj");
+    this.meshes.push(mesh);
   }
 
   protected update(deltaTime: number): void {

@@ -1,7 +1,7 @@
 import { Game } from "./game.js";
 import { Matrix4 } from "./matrix4.js";
 import { RaycastInfo } from "./mesh.js";
-import { Ray } from "./triangle.js";
+import { Ray } from "./ray.js";
 
 export enum Control {
   moveF = "w",

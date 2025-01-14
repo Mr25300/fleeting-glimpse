@@ -1,5 +1,4 @@
 #version 300 es
-
 precision lowp float;
 
 in float lightSourceDot;

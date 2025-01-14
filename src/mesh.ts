@@ -1,5 +1,6 @@
+import { Game } from "./game.js";
 import { Matrix4 } from "./matrix4.js";
-import { Ray } from "./triangle.js";
+import { Ray } from "./ray.js";
 import { Util } from "./util.js";
 import { Vector3 } from "./vector3.js";
 
@@ -21,31 +22,60 @@ export class Mesh {
   private transformation: Matrix4 = Matrix4.identity;
   private transformedVertices: Vector3[];
 
+  public readonly vertexBuffer: WebGLBuffer;
+  public readonly indexBuffer: WebGLBuffer;
+
   constructor(
     private vertices: Vector3[],
-    private triangles: Triangle[]
+    private triangles: Triangle[],
   ) {
     this.transformedVertices = vertices;
+
+    const vertexData: Float32Array = new Float32Array(vertices.length * 3);
+    const indexData: Uint16Array = new Uint16Array(triangles.length * 3);
+
+    for (let i = 0; i < vertices.length; i++) {
+      const vertex: Vector3 = vertices[i];
+
+      vertexData[i * 3] = vertex.x;
+      vertexData[i * 3 + 1] = vertex.y;
+      vertexData[i * 3 + 2] = vertex.z;
+    }
+
+    for (let i = 0; i < triangles.length; i++) {
+      const triangle: Triangle = triangles[i];
+
+      indexData[i * 3] = triangle.v0;
+      indexData[i * 3 + 1] = triangle.v1;
+      indexData[i * 3 + 2] = triangle.v2;
+    }
+
+    this.vertexBuffer = Game.instance.canvas.createBuffer(vertexData);
+    this.indexBuffer = Game.instance.canvas.createBuffer(indexData, true);
   }
 
-  static fromFilePath(filePath: string): Mesh {
-    const mesh: Mesh = new Mesh([], []);
+  static async fromFilePath(filePath: string): Promise<Mesh> {
+    const text: string = await Util.loadFile(filePath);
+    const [vertices, vertexIndices] = Util.parseObj(text);
+    const triangles: Triangle[] = [];
 
-    Util.loadFile(filePath).then((text: string) => {
-      const [vertices, vertexIndices] = Util.parseObj(text);
+    for (let i = 0; i < vertexIndices.length / 3; i++) {
+      triangles[i] = new Triangle(
+        vertexIndices[i * 3],
+        vertexIndices[i * 3 + 1],
+        vertexIndices[i * 3 + 2]
+      );
+    }
 
-      mesh.vertices = vertices;
+    return new Mesh(vertices, triangles);
+  }
 
-      for (let i = 0; i < vertexIndices.length / 3; i++) {
-        mesh.triangles[i] = new Triangle(
-          vertexIndices[i * 3],
-          vertexIndices[i * 3 + 1],
-          vertexIndices[i * 3 + 2]
-        );
-      }
-    });
+  public get triangleCount(): number {
+    return this.triangles.length;
+  }
 
-    return mesh;
+  public getTransformation(): Matrix4 {
+    return this.transformation;
   }
 
   private getVertex(index: number): Vector3 {
