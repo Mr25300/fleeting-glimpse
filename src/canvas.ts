@@ -63,6 +63,7 @@ export class Canvas {
     this.dotShader.createUniform("viewMatrix");
     this.dotShader.createUniform("projectionMatrix");
     this.dotShader.createUniform("lightDirection");
+    this.dotShader.createUniform("time");
 
     this.shapeShader.use();
     this.shapeShader.createAttrib("vertexPos");
@@ -170,6 +171,7 @@ export class Canvas {
     this.dotShader.setUniformMatrix("viewMatrix", viewMatrix);
     this.dotShader.setUniformMatrix("projectionMatrix", projectionMatrix);
     this.dotShader.setUniformVector("lightDirection", new Vector3(0, -1, 0));
+    this.dotShader.setUniformFloat("time", Game.instance.elapsedTime);
 
     this.dotShader.setAttribBuffer("vertexPos", this.dotVertexBuffer, 3, 0, 0);
     this.dotShader.setAttribBuffer("dotPos", this.dotPositionBuffer, 3, 0, 0, 1);

@@ -157,6 +157,10 @@ export class ShaderProgram {
     this.gl.uniform3fv(this.getUniformLocation(name), new Float32Array([vector.x, vector.y, vector.z]));
   }
 
+  public setUniformFloat(name: string, value: number): void {
+    this.gl.uniform1f(this.getUniformLocation(name), value);
+  }
+
   /**
    * Activate the program.
    */

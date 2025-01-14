@@ -88,8 +88,8 @@ export class Game extends Gameloop {
 
     // this.triangle = new Triangle(new Vector3(-2, -2, 0), new Vector3(2, -2, 0), new Vector3(0, 2, 0));
     // this.points.push(this.triangle.v0, this.triangle.v1, this.triangle.v2);
-    
-    const mesh: Mesh = await Mesh.fromFilePath("res/assets/testmap.obj");
+
+    const mesh: Mesh = await Mesh.fromFilePath("res/assets/cube.obj");
     this.meshes.push(mesh);
   }
 

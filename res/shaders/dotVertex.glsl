@@ -31,5 +31,5 @@ void main() {
   
   gl_Position = projectionMatrix * inverse(viewMatrix) * vec4(worldPosition, 1.0);
 
-  lightSourceDot = 1.0 - (dot(normalize(lightDirection), up) + 1.0 / 2.0);
+  lightSourceDot = 1.0 - (dot(normalize(lightDirection), up) + 1.0) / 2.0 * 0.7;
 }
