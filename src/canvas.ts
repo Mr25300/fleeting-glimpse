@@ -144,7 +144,7 @@ export class Canvas {
    */
   public render(): void {
     // Clear screen
-    this.gl.clearColor(0, 0, 0, 1);
+    this.gl.clearColor(1, 1, 1, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT | this.gl.STENCIL_BUFFER_BIT);
 
     const viewMatrix: Matrix4 = Game.instance.camera.getViewMatrix();

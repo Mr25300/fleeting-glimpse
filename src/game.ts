@@ -1,6 +1,7 @@
 import { Camera } from "./camera.js";
 import { Canvas } from "./canvas.js";
 import { Control, Controller } from "./controller.js";
+import { Entity } from "./entity.js";
 import { Mesh, Triangle } from "./mesh.js";
 import { Vector3 } from "./vector3.js";
 
@@ -69,6 +70,7 @@ export class Game extends Gameloop {
 
   public readonly canvas: Canvas = new Canvas();
   public readonly camera: Camera = new Camera();
+  public readonly player: Entity = new Entity(Vector3.zero, 2);
   public controller: Controller;
 
   // public readonly onUpdate: GameEvent = new GameEvent();
@@ -94,16 +96,9 @@ export class Game extends Gameloop {
   }
 
   protected update(deltaTime: number): void {
-    let moveDir: Vector3 = new Vector3();
-
-    if (this.controller.controlActive(Control.moveF)) moveDir = moveDir.add(new Vector3(0, 0, -1));
-    if (this.controller.controlActive(Control.moveB)) moveDir = moveDir.add(new Vector3(0, 0, 1));
-    if (this.controller.controlActive(Control.moveL)) moveDir = moveDir.add(new Vector3(-1, 0, 0));
-    if (this.controller.controlActive(Control.moveR)) moveDir = moveDir.add(new Vector3(1, 0, 0));
-
-    if (moveDir.magnitude === 0) return;
-
-    this.camera.position = this.camera.position.add(this.camera.rotation.apply(moveDir).unit.multiply(2 * deltaTime));
+    this.player.behaviour();
+    this.player.update(deltaTime);
+    this.camera.position = this.player.position;
   }
 
   protected render(): void {

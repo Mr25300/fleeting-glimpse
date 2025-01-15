@@ -5,6 +5,8 @@ export class Vector3 { // Consider general vector class which stores values in f
     public readonly z: number = 0
   ) {}
 
+  public static readonly zero: Vector3 = new Vector3();
+
   public add(vector: Vector3): Vector3 {
     return new Vector3(this.x + vector.x, this.y + vector.y, this.z + vector.z);
   }

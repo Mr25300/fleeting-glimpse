@@ -10,99 +10,77 @@ export interface RaycastInfo {
   normal: Vector3
 }
 
-export class Triangle {
+export class Capsule {
+  private transformation: Matrix4 = Matrix4.identity;
+
   constructor(
-    public readonly v0: number,
-    public readonly v1: number,
-    public readonly v2: number
-  ) { }
+
+  ) {}
 }
 
-export class Mesh {
+export class Bounds {
+  constructor(private min: Vector3, private max: Vector3) {
+
+  }
+}
+
+export class Triangle {
+  constructor(
+    public readonly v0: Vector3,
+    public readonly v1: Vector3,
+    public readonly v2: Vector3
+  ) {}
+}
+
+export class Model {
   private transformation: Matrix4 = Matrix4.identity;
   private transformedVertices: Vector3[];
 
-  public readonly vertexBuffer: WebGLBuffer;
-  public readonly indexBuffer: WebGLBuffer;
-
-  constructor(
-    private vertices: Vector3[],
-    private triangles: Triangle[],
-  ) {
-    this.transformedVertices = vertices;
-
-    const vertexData: Float32Array = new Float32Array(vertices.length * 3);
-    const indexData: Uint16Array = new Uint16Array(triangles.length * 3);
-
-    for (let i = 0; i < vertices.length; i++) {
-      const vertex: Vector3 = vertices[i];
-
-      vertexData[i * 3] = vertex.x;
-      vertexData[i * 3 + 1] = vertex.y;
-      vertexData[i * 3 + 2] = vertex.z;
-    }
-
-    for (let i = 0; i < triangles.length; i++) {
-      const triangle: Triangle = triangles[i];
-
-      indexData[i * 3] = triangle.v0;
-      indexData[i * 3 + 1] = triangle.v1;
-      indexData[i * 3 + 2] = triangle.v2;
-    }
-
-    this.vertexBuffer = Game.instance.canvas.createBuffer(vertexData);
-    this.indexBuffer = Game.instance.canvas.createBuffer(indexData, true);
+  constructor(private mesh: Mesh) {
+    this.transformedVertices = new Array(this.mesh.vertices.length);
   }
 
-  static async fromFilePath(filePath: string): Promise<Mesh> {
-    const text: string = await Util.loadFile(filePath);
-    const [vertices, vertexIndices] = Util.parseObj(text);
-    const triangles: Triangle[] = [];
-
-    for (let i = 0; i < vertexIndices.length / 3; i++) {
-      triangles[i] = new Triangle(
-        vertexIndices[i * 3],
-        vertexIndices[i * 3 + 1],
-        vertexIndices[i * 3 + 2]
-      );
-    }
-
-    return new Mesh(vertices, triangles);
-  }
-
-  public get triangleCount(): number {
-    return this.triangles.length;
-  }
-
-  public getTransformation(): Matrix4 {
+  public get transformationMatrix(): Matrix4 {
     return this.transformation;
   }
 
-  private getVertex(index: number): Vector3 {
+  public setTransformation(transform: Matrix4): void {
+    this.transformation = transform;
+    this.transformedVertices = new Array(this.mesh.vertices.length);
+  }
+
+  public getVertex(index: number): Vector3 {
     if (!this.transformedVertices[index]) {
-      this.transformedVertices[index] = this.transformation.apply(this.vertices[index]);
+      this.transformedVertices[index] = this.transformation.apply(this.mesh.getVertex(index));
     }
 
     return this.transformedVertices[index];
   }
 
+  public getTriangle(triangle: number): Triangle {
+    const [v0, v1, v2] = this.mesh.getTriangleIndices(triangle);
+
+    return new Triangle(
+      this.getVertex(v0),
+      this.getVertex(v1),
+      this.getVertex(v2)
+    );
+  }
+
   public raycast(ray: Ray): RaycastInfo | undefined {
     let lastInfo: RaycastInfo | undefined;
 
-    for (const triangle of this.triangles) {
-      const v0: Vector3 = this.getVertex(triangle.v0);
-      const v1: Vector3 = this.getVertex(triangle.v1);
-      const v2: Vector3 = this.getVertex(triangle.v2);
-
-      const edge1: Vector3 = v1.subtract(v0); // The edge vector going from vertex 0 to 1 (E1)
-      const edge2: Vector3 = v2.subtract(v0); // The edge vector going from vertex 0 to 2 (E2)
+    for (let i: number = 0; i < this.mesh.triangleCount; i++) {
+      const triangle: Triangle = this.getTriangle(i);
+      const edge1: Vector3 = triangle.v1.subtract(triangle.v0); // The edge vector going from vertex 0 to 1 (E1)
+      const edge2: Vector3 = triangle.v2.subtract(triangle.v0); // The edge vector going from vertex 0 to 2 (E2)
       const normal: Vector3 = edge1.cross(edge2); // The normal of the triangle
       const negDirection: Vector3 = ray.direction.multiply(-1); // The negative ray direction (-D)
       const determinant: number = negDirection.dot(normal); // The determinant of [-D, E1, E2] using the scalar triple product
 
       if (determinant <= 0) continue; // Return if the line is parallel or towards the same direction as the triangle's normal
 
-      const vertexDifference: Vector3 = ray.origin.subtract(v0); // The difference between the origin and vertex 0 (T)
+      const vertexDifference: Vector3 = ray.origin.subtract(triangle.v0); // The difference between the origin and vertex 0 (T)
 
       const determinantU: number = negDirection.dot(vertexDifference.cross(edge2)); // The determinant of [-D, T, E2] using the scalar triple product
       const u: number = determinantU / determinant;
@@ -127,5 +105,81 @@ export class Mesh {
     }
 
     return lastInfo;
+  }
+}
+
+export class Model {
+
+}
+
+export class Mesh {
+  public readonly vertexBuffer: WebGLBuffer;
+  public readonly indexBuffer: WebGLBuffer;
+
+  constructor(public readonly vertices: Vector3[], private vertexIndices: number[]) {
+    const vertexData: Float32Array = new Float32Array(vertices.length * 3);
+    const indexData: Uint16Array = new Uint16Array(vertexIndices);
+
+    for (let i = 0; i < vertices.length; i++) {
+      const vertex: Vector3 = vertices[i];
+
+      vertexData[i * 3] = vertex.x;
+      vertexData[i * 3 + 1] = vertex.y;
+      vertexData[i * 3 + 2] = vertex.z;
+    }
+
+    this.vertexBuffer = Game.instance.canvas.createBuffer(vertexData);
+    this.indexBuffer = Game.instance.canvas.createBuffer(indexData, true);
+  }
+
+  static async fromFilePath(filePath: string): Promise<Mesh> {
+    const text: string = await Util.loadFile(filePath);
+    const [vertices, vertexIndices] = Util.parseObj(text);
+
+    return new Mesh(vertices, vertexIndices);
+  }
+
+  public get triangleCount(): number {
+    return this.vertexIndices.length / 3;
+  }
+
+  public getTriangleIndices(triangle: number): [number, number, number] {
+    return [
+      this.vertexIndices[triangle * 3],
+      this.vertexIndices[triangle * 3 + 1],
+      this.vertexIndices[triangle * 3 + 2]
+    ];
+  }
+
+  public getVertex(index: number): Vector3 {
+    return this.vertices[index];
+  }
+}
+
+export class RenderModel {
+  private transformation: Matrix4;
+
+  public setTransformation(transformation: Matrix4): void {
+    this.transformation = transformation;
+  }
+
+  public bind(): void {
+
+  }
+}
+
+export class RenderMesh {
+  public readonly vertexBuffer: WebGLBuffer;
+  public readonly indexBuffer: WebGLBuffer;
+  public readonly indexCount: number;
+
+  constructor(vertexData: Float32Array, indexData: Uint16Array) {
+    this.vertexBuffer = Game.instance.canvas.createBuffer(vertexData);
+    this.indexBuffer = Game.instance.canvas.createBuffer(indexData);
+    this.indexCount = indexData.length;
+  }
+
+  public bind() {
+
   }
 }
