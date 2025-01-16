@@ -1,8 +1,9 @@
+import { BVH } from "./bvh.js";
 import { Camera } from "./camera.js";
 import { Canvas } from "./canvas.js";
-import { Control, Controller } from "./controller.js";
+import { Controller } from "./controller.js";
 import { Entity } from "./entity.js";
-import { Mesh, Triangle } from "./mesh.js";
+import { GameMesh, GameModel, RenderMesh, RenderModel } from "./mesh.js";
 import { Vector3 } from "./vector3.js";
 
 /** Handle game loop */
@@ -66,11 +67,11 @@ export abstract class Gameloop {
 export class Game extends Gameloop {
   private static _instance: Game;
 
-  public meshes: Mesh[] = [];
-
   public readonly canvas: Canvas = new Canvas();
   public readonly camera: Camera = new Camera();
-  public readonly player: Entity = new Entity(Vector3.zero, 2);
+  public readonly player: Entity = new Entity(new Vector3(0, 3, 0), 5);
+  public renderModels: Map<RenderMesh, Set<RenderModel>> = new Map();
+  public bvh: BVH;
   public controller: Controller;
 
   // public readonly onUpdate: GameEvent = new GameEvent();
@@ -84,15 +85,16 @@ export class Game extends Gameloop {
   public async init(): Promise<void> {
     await this.canvas.init();
 
-    this.start();
-
     this.controller = new Controller();
 
-    // this.triangle = new Triangle(new Vector3(-2, -2, 0), new Vector3(2, -2, 0), new Vector3(0, 2, 0));
-    // this.points.push(this.triangle.v0, this.triangle.v1, this.triangle.v2);
+    const [gameMesh, renderMesh] = await GameMesh.fromFile("res/assets/MAPONE.obj");
 
-    const mesh: Mesh = await Mesh.fromFilePath("res/assets/cube.obj");
-    this.meshes.push(mesh);
+    this.bvh = new BVH([new GameModel(gameMesh)]);
+
+    this.renderModels.set(renderMesh, new Set());
+    this.renderModels.get(renderMesh)?.add(new RenderModel(renderMesh));
+
+    this.start();
   }
 
   protected update(deltaTime: number): void {

@@ -1,5 +1,6 @@
 import { Game } from "./game.js";
 import { Matrix4 } from "./matrix4.js";
+import { RenderMesh, RenderModel } from "./mesh.js";
 import { ShaderProgram } from "./shaderprogram.js";
 import { Vector3 } from "./vector3.js";
 
@@ -62,7 +63,7 @@ export class Canvas {
     this.dotShader.createAttrib("dotNormal");
     this.dotShader.createUniform("viewMatrix");
     this.dotShader.createUniform("projectionMatrix");
-    this.dotShader.createUniform("lightDirection");
+    this.dotShader.createUniform("lightSource");
     this.dotShader.createUniform("time");
 
     this.shapeShader.use();
@@ -157,20 +158,23 @@ export class Canvas {
     this.shapeShader.setUniformMatrix("viewMatrix", viewMatrix);
     this.shapeShader.setUniformMatrix("projectionMatrix", projectionMatrix);
 
-    for (const mesh of Game.instance.meshes) {
-      this.shapeShader.setUniformMatrix("meshTransform", mesh.getTransformation());
+    Game.instance.renderModels.forEach((models: Set<RenderModel>, mesh: RenderMesh) => {
       this.shapeShader.setAttribBuffer("vertexPos", mesh.vertexBuffer, 3, 0, 0);
-
       this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
-      this.gl.drawElements(this.gl.TRIANGLES, mesh.triangleCount * 3, this.gl.UNSIGNED_SHORT, 0);
-    }
+
+      for (const model of models) {
+        this.shapeShader.setUniformMatrix("meshTransform", model.transformation);
+
+        this.gl.drawElements(this.gl.TRIANGLES, mesh.indexCount, this.gl.UNSIGNED_SHORT, 0);
+      }
+    });
 
     // Set necessary attrib buffers and uniforms for sprite rendering
     this.dotShader.use();
 
     this.dotShader.setUniformMatrix("viewMatrix", viewMatrix);
     this.dotShader.setUniformMatrix("projectionMatrix", projectionMatrix);
-    this.dotShader.setUniformVector("lightDirection", new Vector3(0, -1, 0));
+    this.dotShader.setUniformVector("lightSource", Game.instance.player.position);
     this.dotShader.setUniformFloat("time", Game.instance.elapsedTime);
 
     this.dotShader.setAttribBuffer("vertexPos", this.dotVertexBuffer, 3, 0, 0);

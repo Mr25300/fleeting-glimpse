@@ -11,7 +11,7 @@ export class Entity {
   private gravityVelocity: Vector3 = Vector3.zero;
 
   constructor(public position: Vector3, private speed: number) {}
-
+  
   public behaviour(): void {
     let inputDir: Vector3 = Vector3.zero;
 

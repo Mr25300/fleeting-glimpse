@@ -1,7 +1,7 @@
+import { RaycastInfo } from "./bvh.js";
+import { Ray } from "./collisions.js";
 import { Game } from "./game.js";
 import { Matrix4 } from "./matrix4.js";
-import { RaycastInfo } from "./mesh.js";
-import { Ray } from "./ray.js";
 
 export enum Control {
   moveF = "w",
@@ -18,19 +18,13 @@ export class Controller {
     document.addEventListener("click", () => {
       document.body.requestPointerLock();
 
-      for (let i = 0; i < 1000; i++) {
+      for (let i = 0; i < 500; i++) {
         const lineDirection: Matrix4 = Game.instance.camera.rotation.rotate(0, 0, 2 * Math.PI * Math.random()).rotate(0, 10 * Math.PI / 180 * Math.random(), 0);
         const ray = new Ray(Game.instance.camera.position, lineDirection.lookVector);
 
-        let currentInfo: RaycastInfo | undefined;
+        const info: RaycastInfo | undefined = Game.instance.bvh.raycast(ray);
 
-        for (const mesh of Game.instance.meshes) {
-          const info: RaycastInfo | undefined = mesh.raycast(ray);
-
-          if (info) {
-            Game.instance.canvas.createDot(info.position, info.normal);
-          }
-        }
+        if (info) Game.instance.canvas.createDot(info.position, info.normal);
       }
     });
 
