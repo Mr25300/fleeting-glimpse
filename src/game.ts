@@ -96,7 +96,7 @@ export class Game extends Gameloop {
 
     this.start();
   }
-
+  
   protected update(deltaTime: number): void {
     this.player.behaviour();
     this.player.update(deltaTime);

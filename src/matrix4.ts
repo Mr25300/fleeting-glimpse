@@ -159,13 +159,13 @@ export class Matrix4 {
     );
   }
 
-  public get angles(): Vector3 {
-    return new Vector3(
-      Math.atan2(this.values[9], this.values[10]),
-      Math.asin(-this.values[8]),
-      Math.atan2(this.values[4], this.values[0])
-    );
-  }
+  // public get angles(): Vector3 { // FIX THIS!!!
+  //   return new Vector3(
+  //     Math.atan2(this.values[9], this.values[10]),
+  //     Math.asin(-this.values[8]),
+  //     Math.atan2(this.values[4], this.values[0])
+  //   );
+  // }
 
   public get lookVector(): Vector3 {
     return new Vector3(-this.values[2], -this.values[6], -this.values[10]);

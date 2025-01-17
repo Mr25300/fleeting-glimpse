@@ -1,4 +1,4 @@
-import { Bounds, Ray, Triangle } from "./collisions.js";
+import { Bounds, Capsule, Ray, Triangle } from "./collisions.js";
 import { GameModel } from "./mesh.js";
 import { Vector3 } from "./vector3.js";
 
@@ -6,6 +6,11 @@ export interface RaycastInfo {
   t: number,
   position: Vector3,
   normal: Vector3
+}
+
+export interface CollisionInfo {
+  normal: Vector3,
+  overlap: number
 }
 
 class BVHNode {
@@ -26,8 +31,6 @@ export class BVH {
     }
 
     this.constructNode(this.root, triangles);
-
-    console.log(this.root);
   }
 
   private constructNode(node: BVHNode, triangles: Triangle[]): void {
@@ -39,9 +42,9 @@ export class BVH {
       centers.push(triangle.center);
     }
 
-    node.bounds = Bounds.fromVertices(vertices);
+    node.bounds = Bounds.fromPoints(vertices);
 
-    const centerBounds: Bounds = Bounds.fromVertices(centers);
+    const centerBounds: Bounds = Bounds.fromPoints(centers);
 
     if (triangles.length === 1 || centerBounds.dimensions.magnitude === 0) {
       node.triangles = triangles;
@@ -73,20 +76,6 @@ export class BVH {
       }
     }
 
-    console.log("Triangles:", triangles, "\nLeft:", leftTriangles, "\nRight:", rightTriangles, "\n----------");
-
-    // if (leftTriangles.length === triangles.length && rightTriangles.length === 0) {
-    //   node.triangles.push(...leftTriangles);
-
-    //   return;
-    // }
-
-    // if (rightTriangles.length === triangles.length && leftTriangles.length === 0) {
-    //   node.triangles.push(...rightTriangles);
-
-    //   return;
-    // }
-
     if (leftTriangles.length > 0) {
       node.left = new BVHNode();
 
@@ -112,19 +101,54 @@ export class BVH {
     const possibleTriangles: Triangle[] = [];
 
     this.traverse(possibleTriangles, (nodeBounds: Bounds) => {
-      return nodeBounds.doesRayIntersect(ray);
+      return ray.intersectsBounds(nodeBounds);
     });
 
-    let raycastInfo: RaycastInfo | undefined;
+    if (possibleTriangles.length === 0) return;
+
+    let minT: number = Infinity;
+    let minNormal: Vector3 = Vector3.zero;
 
     for (const triangle of possibleTriangles) {
-      const t: number | undefined = triangle.getRayIntersection(ray);
+      const t: number | undefined = ray.getTriangleIntersection(triangle);
 
-      if (t && (!raycastInfo || t < raycastInfo.t)) {
-        raycastInfo = { t: t, normal: triangle.normal, position: ray.getPoint(t) };
+      if (t && t < minT) {
+        minT = t;
+        minNormal = triangle.normal;
       }
     }
 
-    return raycastInfo;
+    return {
+      t: minT,
+      normal: minNormal,
+      position: ray.getPoint(minT)
+    };
+  }
+
+  public collisionQuery(hitbox: Capsule): CollisionInfo | undefined {
+    const possibleTriangles: Triangle[] = [];
+
+    this.traverse(possibleTriangles, (nodeBounds: Bounds) => {
+      return hitbox.bounds.overlaps(nodeBounds);
+    });
+
+    if (possibleTriangles.length === 0) return;
+
+    let minOverlap: number = Infinity;
+    let minNormal: Vector3 = Vector3.zero;
+
+    for (const triangle of possibleTriangles) {
+      const [intersects, normal, overlap] = hitbox.getTriangleIntersection(triangle);
+
+      if (intersects && overlap! < minOverlap) {
+        minOverlap = overlap!;
+        minNormal = normal!;
+      }
+    }
+
+    return {
+      normal: minNormal,
+      overlap: minOverlap
+    };
   }
 }

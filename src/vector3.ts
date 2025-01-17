@@ -1,4 +1,7 @@
 export class Vector3 { // Consider general vector class which stores values in float32array
+  private _magnitude?: number;
+  private _unit?: Vector3;
+
   constructor(
     public readonly x: number = 0,
     public readonly y: number = 0,
@@ -24,11 +27,17 @@ export class Vector3 { // Consider general vector class which stores values in f
   }
 
   public get magnitude(): number {
-    return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2);
+    if (this._magnitude === undefined) {
+      this._magnitude = Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2);
+    }
+
+    return this._magnitude;
   }
 
   public get unit(): Vector3 {
-    return this.divide(this.magnitude);
+    if (!this._unit) this._unit = this.divide(this.magnitude);
+
+    return this._unit;
   }
 
   public dot(vector: Vector3): number {

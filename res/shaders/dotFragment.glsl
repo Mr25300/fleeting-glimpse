@@ -15,7 +15,7 @@ float staticNoise(vec3 p) {
 }
 
 void main() {
-  float noiseScalar = staticNoise(vec3(gl_FragCoord.xy, time * 5.0) / 10.0);
+  float noiseScalar = staticNoise(vec3(gl_FragCoord.xy, time * 5.0) / 2.0);
   vec3 dotColor = vec3(lightSourceDot, 0.0, 0.0);
 
   fragColor = vec4(dotColor * noiseScalar, 1.0f);

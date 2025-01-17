@@ -13,7 +13,8 @@ export class Canvas {
   private shapeShader: ShaderProgram;
 
   /** The square vertex buffer used for all sprites. */
-  private maxDotCount: number = 1000000;
+  private maxDotCount: number = 10000;
+  private currentDot: number = 0;
   private dotCount: number = 0;
   private dotVertexBuffer: WebGLBuffer;
   private dotPositionBuffer: WebGLBuffer;
@@ -118,12 +119,13 @@ export class Canvas {
     const normalData: Float32Array = new Float32Array([normal.x, normal.y, normal.z]);
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.dotPositionBuffer);
-    this.gl.bufferSubData(this.gl.ARRAY_BUFFER, this.dotCount * 3 * Float32Array.BYTES_PER_ELEMENT, positionData);
+    this.gl.bufferSubData(this.gl.ARRAY_BUFFER, this.currentDot * 3 * Float32Array.BYTES_PER_ELEMENT, positionData);
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.dotNormalBuffer);
-    this.gl.bufferSubData(this.gl.ARRAY_BUFFER, this.dotCount * 3 * Float32Array.BYTES_PER_ELEMENT, normalData);
+    this.gl.bufferSubData(this.gl.ARRAY_BUFFER, this.currentDot * 3 * Float32Array.BYTES_PER_ELEMENT, normalData);
 
-    this.dotCount++;
+    this.currentDot = (this.currentDot + 1) % this.maxDotCount;
+    this.dotCount = Math.min(this.dotCount + 1, this.maxDotCount);
   }
 
   /**
@@ -151,8 +153,6 @@ export class Canvas {
     const viewMatrix: Matrix4 = Game.instance.camera.getViewMatrix();
     const projectionMatrix: Matrix4 = Game.instance.camera.getProjectionMatrix(this.aspectRatio);
 
-    // DRAW BLACK TRIANGLES BEFOREHAND SO THAT POINTS BEHIND THEM WILL BE OCCLUDED
-    // DRAW POINTS SLIGHTLY FORWARD IN THE NORMAL DIRECTION SO THEY DONT CLIP WITH THE BLACK TRIANGLES
     this.shapeShader.use();
 
     this.shapeShader.setUniformMatrix("viewMatrix", viewMatrix);

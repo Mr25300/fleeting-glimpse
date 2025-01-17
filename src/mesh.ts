@@ -1,7 +1,6 @@
 import { Triangle } from "./collisions.js";
 import { Game } from "./game.js";
 import { Matrix4 } from "./matrix4.js";
-import { Ray } from "./collisions.js";
 import { Util } from "./util.js";
 import { Vector3 } from "./vector3.js";
 
