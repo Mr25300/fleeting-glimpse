@@ -106,6 +106,7 @@ export class BVH {
 
     if (possibleTriangles.length === 0) return;
 
+    let intersection: boolean = false;
     let minT: number = Infinity;
     let minNormal: Vector3 = Vector3.zero;
 
@@ -113,12 +114,13 @@ export class BVH {
       const t: number | undefined = ray.getTriangleIntersection(triangle);
 
       if (t && t < minT) {
+        intersection = true;
         minT = t;
         minNormal = triangle.normal;
       }
     }
 
-    return {
+    if (intersection) return {
       t: minT,
       normal: minNormal,
       position: ray.getPoint(minT)
@@ -134,6 +136,9 @@ export class BVH {
 
     if (possibleTriangles.length === 0) return;
 
+    console.log(possibleTriangles.length);
+
+    let collision: boolean = false;
     let minOverlap: number = Infinity;
     let minNormal: Vector3 = Vector3.zero;
 
@@ -141,12 +146,13 @@ export class BVH {
       const [intersects, normal, overlap] = hitbox.getTriangleIntersection(triangle);
 
       if (intersects && overlap! < minOverlap) {
+        collision = true;
         minOverlap = overlap!;
         minNormal = normal!;
       }
     }
 
-    return {
+    if (collision) return {
       normal: minNormal,
       overlap: minOverlap
     };

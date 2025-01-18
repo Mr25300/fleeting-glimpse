@@ -19,7 +19,7 @@ export class Controller {
       document.body.requestPointerLock();
 
       for (let i = 0; i < 500; i++) {
-        const lineDirection: Matrix4 = Game.instance.camera.rotation.rotate(0, 0, 2 * Math.PI * Math.random()).rotate(0, 10 * Math.PI / 180 * Math.random(), 0);
+        const lineDirection: Matrix4 = Game.instance.camera.rotation.rotate(0, 10 * Math.PI / 180 * Math.random(), 0).rotate(0, 0, 2 * Math.PI * Math.random());
         const ray = new Ray(Game.instance.camera.position, lineDirection.lookVector);
 
         const info: RaycastInfo | undefined = Game.instance.bvh.raycast(ray);

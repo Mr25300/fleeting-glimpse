@@ -127,7 +127,7 @@ export class Capsule {
 
   private closestPointOnLine(start: Vector3, end: Vector3, point: Vector3): Vector3 {
     const direction: Vector3 = end.subtract(start);
-    let t: number = point.subtract(start).dot(direction) / direction.magnitude;
+    let t: number = point.subtract(start).dot(direction.unit) / direction.magnitude;
 
     t = Math.min(Math.max(t, 0), 1);
 

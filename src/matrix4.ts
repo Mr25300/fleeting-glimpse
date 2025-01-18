@@ -91,6 +91,17 @@ export class Matrix4 {
     );
   }
 
+  public static fromLookVector(look: Vector3, up: Vector3 = new Vector3(0, 1, 0)): Matrix4 {
+    const right: Vector3 = up.cross(look);
+
+    return Matrix4.create(
+      right.x, up.x, look.x, 0,
+      right.y, up.y, look.y, 0,
+      right.z, up.z, look.z, 0,
+      0, 0, 0, 1
+    );
+  }
+
   public transpose(): Matrix4 {
     const transposed = new Float32Array(16);
 

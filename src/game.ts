@@ -1,8 +1,10 @@
 import { BVH } from "./bvh.js";
 import { Camera } from "./camera.js";
 import { Canvas } from "./canvas.js";
+import { Capsule, Triangle } from "./collisions.js";
 import { Controller } from "./controller.js";
 import { Entity } from "./entity.js";
+import { Matrix4 } from "./matrix4.js";
 import { GameMesh, GameModel, RenderMesh, RenderModel } from "./mesh.js";
 import { Vector3 } from "./vector3.js";
 
@@ -69,7 +71,7 @@ export class Game extends Gameloop {
 
   public readonly canvas: Canvas = new Canvas();
   public readonly camera: Camera = new Camera();
-  public readonly player: Entity = new Entity(new Vector3(0, 3, 0), 5);
+  public readonly player: Entity = new Entity(new Vector3(0, 3, 0), 5, new Capsule(new Vector3(0, 0, 0), new Vector3(0, 0, 0), 0.5));
   public renderModels: Map<RenderMesh, Set<RenderModel>> = new Map();
   public bvh: BVH;
   public controller: Controller;
@@ -95,6 +97,22 @@ export class Game extends Gameloop {
     this.renderModels.get(renderMesh)?.add(new RenderModel(renderMesh));
 
     this.start();
+
+    // const triangle = new Triangle(
+    //   new Vector3(1, 1, 1),
+    //   new Vector3(1, -1, 3),
+    //   new Vector3(-2, 1, 1)
+    // );
+
+    // const capsule = new Capsule(
+    //   new Vector3(0, 0, -1),
+    //   new Vector3(0, 0, 1),
+    //   1
+    // );
+
+    // console.log(capsule.getTriangleIntersection(triangle));
+
+    console.log(Matrix4.fromRotation(0.2, 0.1, 0).multiply(Matrix4.fromPosition(new Vector3(2, 2, 2))));
   }
   
   protected update(deltaTime: number): void {

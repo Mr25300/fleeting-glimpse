@@ -55,7 +55,7 @@ export class GameMesh {
 
           triangles.push(tri);
           indexData.push(tri.v0, tri.v1, tri.v2); // Directly add triangle
-
+          
         } else {
           // For polygons with more than 4 vertices, triangulate the polygon (basic method)
           for (let i = 1; i < faceIndicies.length - 1; i++) {
