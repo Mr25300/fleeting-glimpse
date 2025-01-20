@@ -9,6 +9,9 @@ export class Vector3 { // Consider general vector class which stores values in f
   ) {}
 
   public static readonly zero: Vector3 = new Vector3();
+  public static readonly x: Vector3 = new Vector3(1, 0, 0);
+  public static readonly y: Vector3 = new Vector3(0, 1, 0);
+  public static readonly z: Vector3 = new Vector3(0, 0, 1);
 
   public add(vector: Vector3): Vector3 {
     return new Vector3(this.x + vector.x, this.y + vector.y, this.z + vector.z);
@@ -35,7 +38,10 @@ export class Vector3 { // Consider general vector class which stores values in f
   }
 
   public get unit(): Vector3 {
-    if (!this._unit) this._unit = this.divide(this.magnitude);
+    if (!this._unit) {
+      if (this.magnitude === 0) this._unit = Vector3.zero;
+      else this._unit = this.divide(this.magnitude);
+    }
 
     return this._unit;
   }

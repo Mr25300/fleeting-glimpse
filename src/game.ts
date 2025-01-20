@@ -1,11 +1,12 @@
-import { BVH } from "./bvh.js";
+import { BVH, RaycastInfo } from "./bvh.js";
 import { Camera } from "./camera.js";
 import { Canvas } from "./canvas.js";
-import { Capsule, Triangle } from "./collisions.js";
-import { Controller } from "./controller.js";
+import { Bounds, Capsule, Ray, Triangle } from "./collisions.js";
+import { Control, Controller } from "./controller.js";
 import { Entity } from "./entity.js";
 import { Matrix4 } from "./matrix4.js";
 import { GameMesh, GameModel, RenderMesh, RenderModel } from "./mesh.js";
+import { Player } from "./player.js";
 import { Vector3 } from "./vector3.js";
 
 /** Handle game loop */
@@ -71,10 +72,15 @@ export class Game extends Gameloop {
 
   public readonly canvas: Canvas = new Canvas();
   public readonly camera: Camera = new Camera();
-  public readonly player: Entity = new Entity(new Vector3(0, 3, 0), 5, new Capsule(new Vector3(0, 0, 0), new Vector3(0, 0, 0), 0.5));
+  public readonly player: Player = new Player();
   public renderModels: Map<RenderMesh, Set<RenderModel>> = new Map();
   public bvh: BVH;
   public controller: Controller;
+  public testTri: Triangle = new Triangle(
+    new Vector3(-1, -1, 0),
+    new Vector3(5, -1, 0),
+    new Vector3(-1, 5, 0)
+  );
 
   // public readonly onUpdate: GameEvent = new GameEvent();
 
@@ -96,6 +102,9 @@ export class Game extends Gameloop {
     this.renderModels.set(renderMesh, new Set());
     this.renderModels.get(renderMesh)?.add(new RenderModel(renderMesh));
 
+    this.camera.subject = this.player;
+    this.camera.subjectOffset = new Vector3(0, 1.5, 0);
+
     this.start();
 
     // const triangle = new Triangle(
@@ -112,13 +121,26 @@ export class Game extends Gameloop {
 
     // console.log(capsule.getTriangleIntersection(triangle));
 
-    console.log(Matrix4.fromRotation(0.2, 0.1, 0).multiply(Matrix4.fromPosition(new Vector3(2, 2, 2))));
+    // const testM = new RenderMesh(new Float32Array([-1, -1, 0, 5, -1, 0, -1, 5, 0]), new Uint16Array([0, 1, 2]));
+    // this.renderModels.set(testM, new Set());
+    // this.renderModels.get(testM)?.add(new RenderModel(testM));
   }
-  
+
   protected update(deltaTime: number): void {
     this.player.behaviour();
     this.player.update(deltaTime);
-    this.camera.position = this.player.position;
+    this.camera.update(deltaTime);
+    
+    if (this.controller.controlActive(Control.glimpse)) {
+      for (let i: number = 0; i < 10; i++) {
+        const lineDirection: Matrix4 = this.camera.rotation.rotate(0, 0, 2 * Math.PI * Math.random()).rotate(0, 10 * Math.PI / 180 * Math.random(), 0);
+        const ray = new Ray(this.camera.position, lineDirection.lookVector);
+  
+        const info: RaycastInfo | undefined = this.bvh.raycast(ray);
+  
+        if (info) this.canvas.createDot(info.position, info.normal);
+      }
+    }
   }
 
   protected render(): void {

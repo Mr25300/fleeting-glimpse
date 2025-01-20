@@ -39,7 +39,7 @@ export class BVH {
 
     for (const triangle of triangles) {
       vertices.push(triangle.v0, triangle.v1, triangle.v2);
-      centers.push(triangle.center);
+      centers.push(triangle.centroid);
     }
 
     node.bounds = Bounds.fromPoints(vertices);
@@ -62,13 +62,13 @@ export class BVH {
     let averageAxisPos = 0;
 
     for (const triangle of triangles) {
-      averageAxisPos += triangle.center[splitAxis];
+      averageAxisPos += triangle.centroid[splitAxis];
     }
 
     averageAxisPos /= triangles.length;
 
     for (const triangle of triangles) {
-      if (triangle.center[splitAxis] < averageAxisPos) {
+      if (triangle.centroid[splitAxis] < averageAxisPos) {
         leftTriangles.push(triangle);
 
       } else {
@@ -127,34 +127,23 @@ export class BVH {
     };
   }
 
-  public collisionQuery(hitbox: Capsule): CollisionInfo | undefined {
+  public collisionQuery(hitbox: Capsule): CollisionInfo[] {
     const possibleTriangles: Triangle[] = [];
 
     this.traverse(possibleTriangles, (nodeBounds: Bounds) => {
       return hitbox.bounds.overlaps(nodeBounds);
     });
 
-    if (possibleTriangles.length === 0) return;
-
-    console.log(possibleTriangles.length);
-
-    let collision: boolean = false;
-    let minOverlap: number = Infinity;
-    let minNormal: Vector3 = Vector3.zero;
+    const info: CollisionInfo[] = [];
 
     for (const triangle of possibleTriangles) {
       const [intersects, normal, overlap] = hitbox.getTriangleIntersection(triangle);
 
-      if (intersects && overlap! < minOverlap) {
-        collision = true;
-        minOverlap = overlap!;
-        minNormal = normal!;
+      if (intersects) {
+        info.push({ normal: normal!, overlap: overlap! });
       }
     }
 
-    if (collision) return {
-      normal: minNormal,
-      overlap: minOverlap
-    };
+    return info;
   }
 }

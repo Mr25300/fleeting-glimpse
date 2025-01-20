@@ -1,5 +1,3 @@
-import { Vector3 } from "./vector3.js";
-
 /** Stores widely and commonly used utility functions. */
 export class Util {
   /**
@@ -13,5 +11,9 @@ export class Util {
     if (!response.ok) throw new Error(`Failed to load file: ${path}`);
 
     return await response.text();
+  }
+
+  public static clamp(n: number, min: number, max: number): number {
+    return Math.max(Math.min(n, max), min);
   }
 }

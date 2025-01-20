@@ -15,8 +15,8 @@ out vec3 fragNormal;
 out float fragFadeScale;
 
 float DOT_SCALE = 0.05;
-float NORMAL_OFFSET = 0.005;
-float DOT_FADE_TIME = 30.0;
+float NORMAL_OFFSET = 0.025;
+float DOT_FADE_TIME = 60.0;
 
 // float NORMAL_OFFSET_PER_UNIT_OF_DISTANCE = 0.001;
 
