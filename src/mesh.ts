@@ -120,13 +120,8 @@ export class RenderMesh {
 }
 
 export class RenderModel {
-  constructor(private mesh: RenderMesh, private _transformation: Matrix4 = Matrix4.identity) {}
-
-  public get transformation(): Matrix4 {
-    return this._transformation;
-  }
-
-  public setTransformation(transformation: Matrix4): void {
-    this._transformation = transformation;
-  }
+  constructor(
+    public readonly mesh: RenderMesh,
+    public transformation: Matrix4 = Matrix4.identity
+  ) {}
 }

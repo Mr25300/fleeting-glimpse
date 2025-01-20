@@ -23,10 +23,10 @@ class BVHNode {
 export class BVH {
   private root: BVHNode = new BVHNode();
 
-  constructor(staticModels: GameModel[]) {
+  public init(models: GameModel[]): void {
     const triangles: Triangle[] = [];
 
-    for (const model of staticModels) {
+    for (const model of models) {
       triangles.push(...model.triangles);
     }
 

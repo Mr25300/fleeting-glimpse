@@ -7,6 +7,7 @@ import { Entity } from "./entity.js";
 import { Matrix4 } from "./matrix4.js";
 import { GameMesh, GameModel, RenderMesh, RenderModel } from "./mesh.js";
 import { Player } from "./player.js";
+import { AudioManager } from "./audiomanager.js";
 import { Vector3 } from "./vector3.js";
 
 /** Handle game loop */
@@ -72,15 +73,12 @@ export class Game extends Gameloop {
 
   public readonly canvas: Canvas = new Canvas();
   public readonly camera: Camera = new Camera();
+  public readonly controller: Controller = new Controller();
+  public readonly audioManager: AudioManager = new AudioManager();
+  public readonly bvh: BVH = new BVH();
+  
   public readonly player: Player = new Player();
   public renderModels: Map<RenderMesh, Set<RenderModel>> = new Map();
-  public bvh: BVH;
-  public controller: Controller;
-  public testTri: Triangle = new Triangle(
-    new Vector3(-1, -1, 0),
-    new Vector3(5, -1, 0),
-    new Vector3(-1, 5, 0)
-  );
 
   // public readonly onUpdate: GameEvent = new GameEvent();
 
@@ -93,14 +91,13 @@ export class Game extends Gameloop {
   public async init(): Promise<void> {
     await this.canvas.init();
 
-    this.controller = new Controller();
+    const [gameMesh, renderMesh] = await GameMesh.fromFile("res/models/map.obj");
 
-    const [gameMesh, renderMesh] = await GameMesh.fromFile("res/assets/MAPONE.obj");
+    this.bvh.init([new GameModel(gameMesh)]);
+    this.canvas.registerModel(new RenderModel(renderMesh));
 
-    this.bvh = new BVH([new GameModel(gameMesh)]);
-
-    this.renderModels.set(renderMesh, new Set());
-    this.renderModels.get(renderMesh)?.add(new RenderModel(renderMesh));
+    const [_, monsterMesh] = await GameMesh.fromFile("res/models/monster.obj");
+    this.canvas.registerModel(new RenderModel(monsterMesh));
 
     this.camera.subject = this.player;
     this.camera.subjectOffset = new Vector3(0, 1.5, 0);
@@ -127,20 +124,10 @@ export class Game extends Gameloop {
   }
 
   protected update(deltaTime: number): void {
-    this.player.behaviour();
+    this.player.prePhysicsBehaviour(deltaTime);
     this.player.update(deltaTime);
     this.camera.update(deltaTime);
-    
-    if (this.controller.controlActive(Control.glimpse)) {
-      for (let i: number = 0; i < 10; i++) {
-        const lineDirection: Matrix4 = this.camera.rotation.rotate(0, 0, 2 * Math.PI * Math.random()).rotate(0, 10 * Math.PI / 180 * Math.random(), 0);
-        const ray = new Ray(this.camera.position, lineDirection.lookVector);
-  
-        const info: RaycastInfo | undefined = this.bvh.raycast(ray);
-  
-        if (info) this.canvas.createDot(info.position, info.normal);
-      }
-    }
+    this.player.postPhysicsBehaviour();
   }
 
   protected render(): void {

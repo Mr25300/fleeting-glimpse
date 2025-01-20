@@ -21,7 +21,7 @@ export class Camera {
   public subjectOffset: Vector3 = Vector3.zero;
 
   public getViewMatrix(): Matrix4 {
-    return Matrix4.fromPosition(this.position).multiply(this.rotation);
+    return this.rotation.transpose().multiply(Matrix4.fromPosition(this.position.multiply(-1))); // Inverse of rotation matrix (transpose because it is orthonormal)
   }
 
   public getProjectionMatrix(aspectRatio: number): Matrix4 {

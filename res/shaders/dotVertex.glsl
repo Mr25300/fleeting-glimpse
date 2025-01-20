@@ -8,14 +8,15 @@ in float dotTime;
 
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
+uniform vec3 lightSource;
 uniform float time;
 
 out vec3 fragPosition;
 out vec3 fragNormal;
 out float fragFadeScale;
 
-float DOT_SCALE = 0.05;
-float NORMAL_OFFSET = 0.025;
+float DOT_SCALE = 0.08;
+float NORMAL_OFFSET = 0.01;
 float DOT_FADE_TIME = 60.0;
 
 // float NORMAL_OFFSET_PER_UNIT_OF_DISTANCE = 0.001;
@@ -40,9 +41,11 @@ void main() {
 
   float dotFade = 1.0 - quadEasing((time - dotTime) / DOT_FADE_TIME);
   
-  vec3 worldPosition = dotPos + (orientation * vertexPos) * DOT_SCALE + dotNormal * NORMAL_OFFSET * dotFade; // scale up normal offset as distance increases
+  vec3 worldPosition = dotPos + (orientation * vertexPos) * DOT_SCALE; // scale up normal offset as distance increases
+  vec3 normalAddition = dotNormal * NORMAL_OFFSET * distance(worldPosition, lightSource) / 4.0 * (dotFade + 9.0) / 10.0;
+  vec3 finalPosition = worldPosition + normalAddition;
   
-  gl_Position = projectionMatrix * inverse(viewMatrix) * vec4(worldPosition, 1.0);
+  gl_Position = projectionMatrix * viewMatrix * vec4(finalPosition, 1.0);
 
   fragPosition = worldPosition;
   fragNormal = up;

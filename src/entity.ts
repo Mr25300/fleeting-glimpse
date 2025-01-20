@@ -14,6 +14,10 @@ export abstract class Entity {
 
   constructor(public position: Vector3, protected speed: number, private hitbox: Capsule) { }
 
+  public get moveDirection(): Vector3 {
+    return this._moveDirection;
+  }
+
   public set moveDirection(direction: Vector3) {
     this._moveDirection = direction.unit;
   }
@@ -22,7 +26,8 @@ export abstract class Entity {
     this._faceDirection = direction.unit;
   }
 
-  public abstract behaviour(): void;
+  public abstract prePhysicsBehaviour(deltaTime: number): void;
+  public abstract postPhysicsBehaviour(deltaTime: number): void;
 
   public update(deltaTime: number): void {
     const moveDisplacement: Vector3 = this._moveDirection.multiply(this.speed * deltaTime);

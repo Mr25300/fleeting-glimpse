@@ -11,7 +11,7 @@ interface Dot {
 
 /** Encapsulates the game"s screen and all relevant functionality. */
 export class Canvas {
-  private readonly DOT_RESOLUTION: number = 10;
+  private readonly DOT_RESOLUTION: number = 7;
 
   private readonly MAX_DOT_COUNT: number = 10000000;
 
@@ -33,6 +33,8 @@ export class Canvas {
   private height: number;
   private width: number;
   private aspectRatio: number;
+
+  private renderModels: Map<RenderMesh, Set<RenderModel>> = new Map();
 
   constructor() {
     this.element = document.getElementById("game-screen") as HTMLCanvasElement;
@@ -153,12 +155,28 @@ export class Canvas {
     this.gl.viewport(0, 0, this.width, this.height);
   }
 
+  public registerModel(model: RenderModel): void {
+    const models: Set<RenderModel> = this.renderModels.get(model.mesh) || new Set();
+    if (models.size === 0) this.renderModels.set(model.mesh, models);
+
+    models.add(model);
+  }
+
+  public unregisterModel(model: RenderModel): void {
+    const models: Set<RenderModel> | undefined = this.renderModels.get(model.mesh);
+    if (!models) return;
+
+    models.delete(model);
+
+    if (models.size === 0) this.renderModels.delete(model.mesh);
+  }
+
   /**
    * Draw all sprite models and collision objects to the canvas.
    */
   public render(): void {
     // Clear screen
-    this.gl.clearColor(1, 1, 1, 1);
+    this.gl.clearColor(0, 0, 0, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT | this.gl.STENCIL_BUFFER_BIT);
 
     const viewMatrix: Matrix4 = Game.instance.camera.getViewMatrix();
@@ -169,7 +187,7 @@ export class Canvas {
     this.shapeShader.setUniformMatrix("viewMatrix", viewMatrix);
     this.shapeShader.setUniformMatrix("projectionMatrix", projectionMatrix);
 
-    Game.instance.renderModels.forEach((models: Set<RenderModel>, mesh: RenderMesh) => {
+    this.renderModels.forEach((models: Set<RenderModel>, mesh: RenderMesh) => {
       this.shapeShader.setAttribBuffer("vertexPos", mesh.vertexBuffer, 3, 0, 0);
       this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
 
