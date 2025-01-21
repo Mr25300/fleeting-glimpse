@@ -103,24 +103,6 @@ export class Game extends Gameloop {
     this.camera.subjectOffset = new Vector3(0, 1.5, 0);
 
     this.start();
-
-    // const triangle = new Triangle(
-    //   new Vector3(1, 1, 1),
-    //   new Vector3(1, -1, 3),
-    //   new Vector3(-2, 1, 1)
-    // );
-
-    // const capsule = new Capsule(
-    //   new Vector3(0, 0, -1),
-    //   new Vector3(0, 0, 1),
-    //   1
-    // );
-
-    // console.log(capsule.getTriangleIntersection(triangle));
-
-    // const testM = new RenderMesh(new Float32Array([-1, -1, 0, 5, -1, 0, -1, 5, 0]), new Uint16Array([0, 1, 2]));
-    // this.renderModels.set(testM, new Set());
-    // this.renderModels.get(testM)?.add(new RenderModel(testM));
   }
 
   protected update(deltaTime: number): void {

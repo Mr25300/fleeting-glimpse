@@ -4,25 +4,24 @@ export class AudioManager {
   private audio: Record<AudioName, HTMLAudioElement>;
 
   constructor() {
-    const ambient = new Audio("res/audio/ambient.mp3");
-    ambient.volume = 0.25;
-    ambient.loop = true;
-
-    const walking = new Audio("res/audio/walking.mp3");
-    walking.loop = true;
-
-    const scanning = new Audio("res/audio/scanning.mp3");
-    scanning.loop = true;
-
-    const chasing = new Audio("res/audio/chasing.mp3");
-    chasing.loop = true;
-
     this.audio = {
-      "ambient": ambient,
-      "walking": walking,
-      "scanning": scanning,
-      "chasing": chasing
+      "ambient": this.loadAudio("res/audio/ambient.mp3", true, 0.25),
+      "walking": this.loadAudio("res/audio/walking.mp3", true),
+      "scanning": this.loadAudio("res/audio/scanning.mp3", true),
+      "chasing": this.loadAudio("res/audio/chasing.mp3", true)
     }
+  }
+
+  private loadAudio(path: string, looped: boolean = false, volume: number = 1): HTMLAudioElement {
+    const audio: HTMLAudioElement = new Audio(path);
+    audio.loop = looped;
+    audio.volume = volume;
+
+    audio.onerror = () => {
+      console.error(`Audio file ${path} failed to load.`);
+    }
+
+    return audio;
   }
 
   public play(name: AudioName): void {

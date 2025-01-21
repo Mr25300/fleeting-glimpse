@@ -106,7 +106,10 @@ export class ShaderProgram {
     // Bind buffer and set pointer
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
 
-    this.gl.vertexAttribPointer(location, size, this.gl.FLOAT, false, stride, offset);
+    this.gl.vertexAttribPointer(location, size, this.gl.FLOAT, false,
+      stride * Float32Array.BYTES_PER_ELEMENT,
+      offset * Float32Array.BYTES_PER_ELEMENT
+    );
     this.gl.enableVertexAttribArray(location);
 
     if (divisor !== undefined) {

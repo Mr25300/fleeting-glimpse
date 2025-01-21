@@ -12,6 +12,7 @@ export abstract class Entity {
   private _moveSpeed: number = 0;
   private fallSpeed: number = 0;
   private _onFloor: boolean = false;
+  private floorNormal: Vector3 = Vector3.zero;
 
   constructor(private _position: Vector3, private hitbox: Capsule) { }
 
@@ -46,49 +47,46 @@ export abstract class Entity {
   public abstract prePhysicsBehaviour(deltaTime: number): void;
   public abstract postPhysicsBehaviour(deltaTime: number): void;
 
+  private handleCollisions(floor: boolean): boolean {
+    this.hitbox.setTransformation(Matrix4.fromPosition(this._position).multiply(Matrix4.fromLookVector(this._faceDirection)));
+
+    let collisionOccured: boolean = false;
+    let totalCorrection: Vector3 = Vector3.zero;
+
+    for (const collision of Game.instance.bvh.collisionQuery(this.hitbox)) {
+      const angle: number = Math.acos(collision.normal.dot(Vector3.y));
+      
+      if (floor && angle > this.MAX_SLOPE) continue;
+      if (!floor && angle <= this.MAX_SLOPE) continue;
+
+      const correction: Vector3 = collision.normal.multiply(collision.overlap);
+      const parallelComponent: Vector3 = totalCorrection.unit.multiply(totalCorrection.unit.dot(correction));
+      const orthogonalComponent: Vector3 = correction.subtract(parallelComponent);
+
+      collisionOccured = true;
+      totalCorrection = totalCorrection.add(orthogonalComponent);
+    }
+
+    this._position = this._position.add(totalCorrection);
+
+    return collisionOccured;
+  }
+
   public update(deltaTime: number): void {
     const moveDisplacement: Vector3 = this._moveDirection.multiply(this._moveSpeed * deltaTime);
+    this._position = this._position.add(moveDisplacement);
+
+    this.handleCollisions(false);
+
     const fallDisplacement: Vector3 = Vector3.y.multiply(-this.fallSpeed * deltaTime);
     const gravDisplacement: Vector3 = Vector3.y.multiply(-this.GRAV_ACCEL * deltaTime ** 2 / 2);
-
-    // do gravity displacement and collisions first
-    // then do movement displacement and ensure player velocity is adjusted depending on the slope of the ground
 
     this._position = this._position.add(moveDisplacement).add(fallDisplacement).add(gravDisplacement);
     this.fallSpeed = this.fallSpeed + this.GRAV_ACCEL * deltaTime;
 
-    this.hitbox.setTransformation(Matrix4.fromPosition(this._position).multiply(Matrix4.fromLookVector(this._faceDirection)));
+    this._onFloor = this.handleCollisions(true);
 
-    let wallNormal: Vector3 = Vector3.zero;
-    let wallOverlap: number = 0;
-    let floorNormal: Vector3 = Vector3.zero;
-    let floorOverlap: number = 0;
-    let floorCollision: boolean = false;
-
-    for (const collision of Game.instance.bvh.collisionQuery(this.hitbox)) {
-      const angle: number = Math.acos(collision.normal.dot(Vector3.y));
-
-      if (angle <= this.MAX_SLOPE) {
-        floorCollision = true;
-
-        if (collision.overlap > floorOverlap) {
-          floorOverlap = collision.overlap;
-          floorNormal = collision.normal;
-        }
-
-      } else if (collision.overlap > wallOverlap) {
-        wallOverlap = collision.overlap;
-        wallNormal = collision.normal;
-      }
-    }
-
-    this._position = this._position.add(floorNormal.multiply(floorOverlap)).add(wallNormal.multiply(wallOverlap));
-
-    if (floorCollision) {
-      this.fallSpeed = 0;
-    }
-
-    this._onFloor = floorCollision;
+    if (this._onFloor) this.fallSpeed = 0;
 
     // const [intersects, normal, overlap] = this.hitbox.getTriangleIntersection(Game.instance.testTri);
 

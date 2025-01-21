@@ -7,7 +7,7 @@ import { Matrix4 } from "./matrix4.js";
 import { Vector3 } from "./vector3.js";
 
 export class Player extends Entity {
-  private GLIMPSE_ANGLE: number = 8 * Math.PI / 180;
+  private GLIMPSE_ANGLE: number = 10 * Math.PI / 180;
   private STAMINA_DRAIN_RATE: number = 20;
   private STAMINA_FILL_RATE = 10;
 
@@ -33,12 +33,12 @@ export class Player extends Entity {
     this.stamina = this.maxStamina;
   }
 
+  public get sprinting(): boolean {
+    return this._sprinting;
+  }
+
   public prePhysicsBehaviour(deltaTime: number): void {
     let inputDir: Vector3 = Vector3.zero;
-
-    // if (this.position.y < 0) {
-    //   this.gravityVelocity
-    // }
 
     if (Game.instance.controller.controlActive(Control.moveF)) inputDir = inputDir.subtract(Vector3.z);
     if (Game.instance.controller.controlActive(Control.moveB)) inputDir = inputDir.add(Vector3.z);
@@ -65,7 +65,9 @@ export class Player extends Entity {
 
     if (Game.instance.controller.controlActive(Control.sprint)) {
       this.stamina = Math.max(this.stamina - this.STAMINA_DRAIN_RATE * deltaTime, 0);
+
       if (this.stamina > 0) this._sprinting = true;
+      else this._sprinting = false;
 
     } else {
       this.stamina = Math.min(this.stamina + this.STAMINA_FILL_RATE * deltaTime, this.maxStamina);
