@@ -9,10 +9,15 @@ export abstract class Entity {
 
   private _moveDirection: Vector3 = Vector3.zero;
   private _faceDirection: Vector3 = new Vector3(0, 0, -1);
-  protected fallSpeed: number = 0;
-  protected onFloor: boolean = false;
+  private _moveSpeed: number = 0;
+  private fallSpeed: number = 0;
+  private _onFloor: boolean = false;
 
-  constructor(public position: Vector3, protected speed: number, private hitbox: Capsule) { }
+  constructor(private _position: Vector3, private hitbox: Capsule) { }
+
+  public get position(): Vector3 {
+    return this._position;
+  }
 
   public get moveDirection(): Vector3 {
     return this._moveDirection;
@@ -26,21 +31,33 @@ export abstract class Entity {
     this._faceDirection = direction.unit;
   }
 
+  public get onFloor(): boolean {
+    return this._onFloor;
+  }
+
+  public set moveSpeed(speed: number) {
+    this._moveSpeed = Math.max(0, speed);
+  }
+
+  public impulseUp(magnitude: number): void {
+    this.fallSpeed -= magnitude;
+  }
+
   public abstract prePhysicsBehaviour(deltaTime: number): void;
   public abstract postPhysicsBehaviour(deltaTime: number): void;
 
   public update(deltaTime: number): void {
-    const moveDisplacement: Vector3 = this._moveDirection.multiply(this.speed * deltaTime);
+    const moveDisplacement: Vector3 = this._moveDirection.multiply(this._moveSpeed * deltaTime);
     const fallDisplacement: Vector3 = Vector3.y.multiply(-this.fallSpeed * deltaTime);
     const gravDisplacement: Vector3 = Vector3.y.multiply(-this.GRAV_ACCEL * deltaTime ** 2 / 2);
 
     // do gravity displacement and collisions first
     // then do movement displacement and ensure player velocity is adjusted depending on the slope of the ground
 
-    this.position = this.position.add(moveDisplacement).add(fallDisplacement).add(gravDisplacement);
+    this._position = this._position.add(moveDisplacement).add(fallDisplacement).add(gravDisplacement);
     this.fallSpeed = this.fallSpeed + this.GRAV_ACCEL * deltaTime;
 
-    this.hitbox.setTransformation(Matrix4.fromPosition(this.position).multiply(Matrix4.fromLookVector(this._faceDirection)));
+    this.hitbox.setTransformation(Matrix4.fromPosition(this._position).multiply(Matrix4.fromLookVector(this._faceDirection)));
 
     let wallNormal: Vector3 = Vector3.zero;
     let wallOverlap: number = 0;
@@ -65,13 +82,13 @@ export abstract class Entity {
       }
     }
 
-    this.position = this.position.add(floorNormal.multiply(floorOverlap)).add(wallNormal.multiply(wallOverlap));
+    this._position = this._position.add(floorNormal.multiply(floorOverlap)).add(wallNormal.multiply(wallOverlap));
 
     if (floorCollision) {
       this.fallSpeed = 0;
     }
 
-    this.onFloor = floorCollision;
+    this._onFloor = floorCollision;
 
     // const [intersects, normal, overlap] = this.hitbox.getTriangleIntersection(Game.instance.testTri);
 

@@ -37,19 +37,12 @@ export class AudioManager {
     return this.audio[name].paused;
   }
 
-  // private async loadAudioSource(path: string): Promise<void> {
-  //   const context = new AudioContext();
-    
-  //   const response = await fetch(path);
-  //   const arrayBuffer = await response.arrayBuffer();
+  public clonePlay(name: AudioName): void {
+    const clone: HTMLAudioElement = this.audio[name].cloneNode(true) as HTMLAudioElement;
+    clone.play();
 
-  //   const audioBuffer = await context.decodeAudioData(arrayBuffer);
-
-  //   const source = context.createBufferSource();
-  //   source.buffer = audioBuffer;
-
-  //   source.connect(context.destination);
-
-  //   source.start()
-  // }
+    clone.onended = () => {
+      clone.remove();
+    }
+  }
 }

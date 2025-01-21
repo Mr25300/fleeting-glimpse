@@ -89,7 +89,7 @@ export class BVH {
     }
   }
 
-  public traverse(triangles: Triangle[], callback: (nodeBound: Bounds) => boolean, node: BVHNode = this.root): void {
+  private traverse(triangles: Triangle[], callback: (nodeBound: Bounds) => boolean, node: BVHNode = this.root): void {
     if (callback(node.bounds)) {
       if (node.left) this.traverse(triangles, callback, node.left);
       if (node.right) this.traverse(triangles, callback, node.right);

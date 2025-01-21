@@ -18,12 +18,16 @@ export class Player extends Entity {
   private maxStamina: number = 100;
   private stamina: number;
 
+  private _sprinting: boolean = false;
+
   constructor() {
     super(
       Vector3.zero,
-      8,
-      new Capsule(new Vector3(0, -2, 0), new Vector3(0, 2, 0), 1.5)
-      // new Capsule(new Vector3(0, -2, 0), new Vector3(0, 2, 0), 1.5)
+      new Capsule(
+        new Vector3(0, -2, 0),
+        new Vector3(0, 2, 0),
+        1.5
+      )
     );
 
     this.stamina = this.maxStamina;
@@ -41,32 +45,41 @@ export class Player extends Entity {
     if (Game.instance.controller.controlActive(Control.moveL)) inputDir = inputDir.subtract(Vector3.x);
     if (Game.instance.controller.controlActive(Control.moveR)) inputDir = inputDir.add(Vector3.x);
 
-    if (inputDir.magnitude === 0) inputDir = Vector3.zero;
-    else inputDir = inputDir.unit;
+    if (inputDir.magnitude === 0) {
+      inputDir = Vector3.zero;
+
+      Game.instance.audioManager.stop("walking");
+
+    } else {
+      inputDir = inputDir.unit;
+
+      Game.instance.audioManager.play("walking");
+    }
 
     const moveMatrix: Matrix4 = Matrix4.fromRotationY(Game.instance.camera.yaw);
 
     this.faceDirection = moveMatrix.lookVector;
     this.moveDirection = moveMatrix.apply(inputDir);
 
-    if (Game.instance.controller.controlActive(Control.jump) && this.onFloor) this.fallSpeed -= this.jumpVelocity;
+    if (Game.instance.controller.controlActive(Control.jump) && this.onFloor) this.impulseUp(this.jumpVelocity);
 
-    const sprinting: boolean = Game.instance.controller.controlActive(Control.sprint);
-
-    if (sprinting && this.stamina > 0) {
-      this.speed = this.sprintSpeed;
-      Game.instance.camera.setFov(100);
-
+    if (Game.instance.controller.controlActive(Control.sprint)) {
       this.stamina = Math.max(this.stamina - this.STAMINA_DRAIN_RATE * deltaTime, 0);
+      if (this.stamina > 0) this._sprinting = true;
 
     } else {
-      this.speed = this.walkSpeed;
-      Game.instance.camera.setFov(70);
-
-      if (!sprinting) this.stamina = Math.min(this.stamina + this.STAMINA_FILL_RATE * deltaTime, this.maxStamina);
+      this.stamina = Math.min(this.stamina + this.STAMINA_FILL_RATE * deltaTime, this.maxStamina);
+      this._sprinting = false;
     }
 
-    console.log(this.stamina);
+    if (this._sprinting) {
+      this.moveSpeed = this.sprintSpeed;
+      Game.instance.camera.setFov(100);
+
+    } else {
+      this.moveSpeed = this.walkSpeed;
+      Game.instance.camera.setFov(70);
+    }
   }
 
   public postPhysicsBehaviour(): void {
