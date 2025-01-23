@@ -1,6 +1,13 @@
 import { Vector3 } from "./vector3.js";
 
 export class Matrix4 {
+  public static readonly identity: Matrix4 = Matrix4.create(
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  );
+  
   private constructor(private values: Float32Array) {}
 
   public static create(...values: number[]): Matrix4 {
@@ -9,13 +16,6 @@ export class Matrix4 {
 
     return new Matrix4(matrixArray);
   }
-
-  public static readonly identity: Matrix4 = Matrix4.create(
-    1, 0, 0, 0,
-    0, 1, 0, 0,
-    0, 0, 1, 0,
-    0, 0, 0, 1
-  );
 
   public static fromScale(scale: Vector3): Matrix4 {
     return Matrix4.create(

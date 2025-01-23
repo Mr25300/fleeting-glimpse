@@ -50,7 +50,7 @@ export class MeshLoader {
       const parts = line.trim().split(/\s+/);  // Split by whitespace
 
       if (parts.length === 0) return;
-
+      
       if (parts[0] === "v") {
         const x: number = parseFloat(parts[1]);
         const y: number = parseFloat(parts[2]);
