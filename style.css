@@ -48,6 +48,10 @@
   animation: title-animation 8s ease-in-out infinite;
 }
 
+.title-img.hide {
+  
+}
+
 .play-button {
   background: none;
   outline: none;
@@ -59,10 +63,6 @@
 .play-button:hover {
   cursor: pointer;
   transform: scale(0.9);
-}
-
-.play-button:hover.clicked {
-  cursor: default;
 }
 
 .play-button img {
