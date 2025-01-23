@@ -23,6 +23,7 @@ export class UIManager {
     const menuContent: DocumentFragment = this.MENU_TEMPLATE.content.cloneNode(true) as DocumentFragment;
     const menu: HTMLDivElement = menuContent.querySelector("#main-menu") as HTMLDivElement;
     const button: HTMLButtonElement = menu.querySelector("#play-button") as HTMLButtonElement;
+    const image: HTMLImageElement = menu.querySelector(".title-img") as HTMLImageElement;
 
     document.body.appendChild(menu);
 
@@ -32,6 +33,7 @@ export class UIManager {
       menuAudio.stop();
 
       button.classList.add("clicked");
+      image.classList.add("hide");
 
       this.buttonPress();
 
