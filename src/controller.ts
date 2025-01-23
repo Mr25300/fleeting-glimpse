@@ -14,11 +14,6 @@ export class Controller {
   private activeControls: Map<Control, boolean> = new Map();
 
   constructor() {
-    document.addEventListener("click", () => {
-      document.body.requestPointerLock();
-      // document.exitPointerLock();
-    });
-
     document.addEventListener("mousemove", (event: MouseEvent) => {
       Game.instance.camera.rotate(-event.movementX / 200, -event.movementY / 200);
     });
@@ -42,5 +37,13 @@ export class Controller {
 
   public controlActive(control: Control): boolean {
     return this.activeControls.get(control) === true;
+  }
+
+  public lockMouse(): void {
+    document.body.requestPointerLock();
+  }
+
+  public unlockMouse(): void {
+    document.exitPointerLock();
   }
 }

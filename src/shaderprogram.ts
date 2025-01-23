@@ -27,9 +27,9 @@ export class ShaderProgram {
    */
   public async initShaders(vertPath: string, fragPath: string) {
     // Load and await vertex and fragment shaders
-    const [vertSource, fragSource] = await Promise.all([
-      Util.loadFile(vertPath),
-      Util.loadFile(fragPath)
+    const [vertSource, fragSource]: [string, string] = await Promise.all([
+      (await Util.loadFile(vertPath)).text(),
+      (await Util.loadFile(fragPath)).text()
     ]);
 
     // Create vertex and fragment shaders and link program

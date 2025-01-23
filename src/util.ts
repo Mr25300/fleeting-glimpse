@@ -5,12 +5,12 @@ export class Util {
    * @param path The path to the shader file.
    * @returns A promise returning the content of the file.
    */
-  public static async loadFile(path: string): Promise<string> {
+  public static async loadFile(path: string): Promise<Response> {
     const response: Response = await fetch(path);
     
     if (!response.ok) throw new Error(`Failed to load file: ${path}`);
 
-    return await response.text();
+    return response;
   }
 
   public static clamp(n: number, min: number, max: number): number {

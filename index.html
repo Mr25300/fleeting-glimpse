@@ -1,21 +1,29 @@
 <html>
-  <head>
-    <link rel="stylesheet" href="style.css">
-  </head>
 
-  <body>
-    <div id="main-container">
-      <canvas id="game-screen"></canvas>
+<head>
+  <link rel="stylesheet" href="style.css">
+</head>
 
-      <div class="container-group" id="main-menu">
-        <img class="title-img" src="res/ui/gameTitle.png" alt="Fleeting Glimpse"/>
-
-        <button>
-          <img src="res/ui/playButton.png" alt="Play"/>
-        </button>
+<body>
+  <template id="main-menu-template">
+    <div id="main-menu" class="full-screen menu-container">
+      <div class="container-group">
+        <div class="element-wrapper">
+          <img class="title-img" src="res/ui/gameTitle.png" alt="Fleeting Glimpse" />
+        </div>
+  
+        <div class="element-wrapper">
+          <button id="play-button" class="play-button">
+            <img src="res/ui/playButton.png" alt="Play" />
+          </button>
+        </div>
       </div>
     </div>
+  </template>
 
-    <script src="dist/game.js" type="module"></script>
-  </body>
+  <canvas id="game-screen" class="full-screen"></canvas>
+
+  <script src="dist/game.js" type="module"></script>
+</body>
+
 </html>

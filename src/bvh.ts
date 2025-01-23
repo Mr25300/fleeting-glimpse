@@ -21,7 +21,7 @@ class BVHNode {
 }
 
 export class BVH {
-  private root: BVHNode = new BVHNode();
+  private root: BVHNode;
 
   public init(models: GameModel[]): void {
     const triangles: Triangle[] = [];
@@ -30,6 +30,7 @@ export class BVH {
       triangles.push(...model.triangles);
     }
 
+    this.root = new BVHNode();
     this.constructNode(this.root, triangles);
   }
 

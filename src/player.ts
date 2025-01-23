@@ -1,9 +1,11 @@
+import { AudioEmission } from "./audiomanager.js";
 import { RaycastInfo } from "./bvh.js";
 import { Capsule, Ray } from "./collisions.js";
 import { Control } from "./controller.js";
 import { Entity } from "./entity.js";
 import { Game } from "./game.js";
 import { Matrix4 } from "./matrix4.js";
+import { Timer } from "./timer.js";
 import { Vector3 } from "./vector3.js";
 
 export class Player extends Entity {
@@ -13,12 +15,15 @@ export class Player extends Entity {
 
   private walkSpeed: number = 8;
   private sprintSpeed: number = 16;
-  private jumpVelocity: number = 20;
+  private jumpVelocity: number = 30;
 
   private maxStamina: number = 100;
   private stamina: number;
 
+  private walkSound?: AudioEmission;
+
   private _sprinting: boolean = false;
+  private jumpTimer: Timer = new Timer(0.5);
 
   constructor() {
     super(
@@ -48,12 +53,12 @@ export class Player extends Entity {
     if (inputDir.magnitude === 0) {
       inputDir = Vector3.zero;
 
-      Game.instance.audioManager.stop("walking");
+      Game.instance.audioManager.getAudio("footstep").stopEffect();
 
     } else {
       inputDir = inputDir.unit;
 
-      Game.instance.audioManager.play("walking");
+      Game.instance.audioManager.getAudio("footstep").startEffect();
     }
 
     const moveMatrix: Matrix4 = Matrix4.fromRotationY(Game.instance.camera.yaw);
@@ -61,7 +66,10 @@ export class Player extends Entity {
     this.faceDirection = moveMatrix.lookVector;
     this.moveDirection = moveMatrix.apply(inputDir);
 
-    if (Game.instance.controller.controlActive(Control.jump) && this.onFloor) this.impulseUp(this.jumpVelocity);
+    if (Game.instance.controller.controlActive(Control.jump) && this.onFloor && !this.jumpTimer.active) {
+      this.jumpTimer.start();
+      this.impulseUp(this.jumpVelocity);
+    }
 
     if (Game.instance.controller.controlActive(Control.sprint)) {
       this.stamina = Math.max(this.stamina - this.STAMINA_DRAIN_RATE * deltaTime, 0);
@@ -77,10 +85,14 @@ export class Player extends Entity {
     if (this._sprinting) {
       this.moveSpeed = this.sprintSpeed;
       Game.instance.camera.setFov(100);
+      Game.instance.audioManager.getAudio("footstep").frequency = 1.8;
+      Game.instance.audioManager.getAudio("footstep").volume = 1.3;
 
     } else {
       this.moveSpeed = this.walkSpeed;
       Game.instance.camera.setFov(70);
+      Game.instance.audioManager.getAudio("footstep").frequency = 1;
+      Game.instance.audioManager.getAudio("footstep").volume = 1;
     }
   }
 
@@ -99,10 +111,10 @@ export class Player extends Entity {
         if (info) Game.instance.canvas.createDot(info.position, info.normal);
       }
 
-      Game.instance.audioManager.play("scanning");
+      // Game.instance.audioManager.getAudio("scanning").staticPlay();
 
     } else {
-      Game.instance.audioManager.stop("scanning");
+      // Game.instance.audioManager.getAudio("scanning").staticStop();
     }
   }
 }

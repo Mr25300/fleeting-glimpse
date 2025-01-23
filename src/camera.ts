@@ -17,7 +17,7 @@ export class Camera {
   private fov: number = 70;
   private goalFov: number = 70;
 
-  public subject: Entity;
+  public subject?: Entity;
   public subjectOffset: Vector3 = Vector3.zero;
 
   public getViewMatrix(): Matrix4 {
@@ -39,7 +39,10 @@ export class Camera {
   }
 
   public update(deltaTime: number): void {
-    this.position = this.subject.position.add(this.subjectOffset);
+    if (this.subject) {
+      this.position = this.subject.position.add(this.subjectOffset);
+    }
+
     this.fov = this.goalFov + (this.fov - this.goalFov) * Math.exp(-this.FOV_SPEED_FACTOR * deltaTime);
   }
 }

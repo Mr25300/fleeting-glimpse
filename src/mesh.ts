@@ -4,22 +4,43 @@ import { Matrix4 } from "./matrix4.js";
 import { Util } from "./util.js";
 import { Vector3 } from "./vector3.js";
 
-export class MeshTriangle {
-  constructor(
-    public readonly v0: number,
-    public readonly v1: number,
-    public readonly v2: number
-  ) {}
+type MeshName = "map" | "monster";
+
+interface MeshInfo {
+  name: MeshName,
+  ignoreGameMesh?: boolean
 }
 
-export class GameMesh {
-  constructor(
-    public readonly vertices: Vector3[],
-    public readonly triangles: MeshTriangle[]
-  ) {}
+interface MeshResult {
+  renderMesh: RenderMesh,
+  gameMesh?: GameMesh
+}
 
-  static async fromFile(filePath: string): Promise<[GameMesh, RenderMesh]> {
-    const objText: string = await Util.loadFile(filePath);
+export class MeshLoader {
+  private MESH_INFO: MeshInfo[] = [
+    { name: "map" },
+    { name: "monster", ignoreGameMesh: true }
+  ]
+
+  private meshes: Map<MeshName, MeshResult> = new Map();
+
+  public async init() {
+    const promises: Promise<MeshResult>[] = [];
+
+    for (let i = 0; i < this.MESH_INFO.length; i++) {
+      const info: MeshInfo = this.MESH_INFO[i];
+      promises[i] = this.loadMesh(`res/models/${info.name}.obj`, info.ignoreGameMesh);
+    }
+
+    const results: MeshResult[] = await Promise.all(promises);
+
+    for (let i = 0; i < results.length; i++) {
+      this.meshes.set(this.MESH_INFO[i].name, results[i]);
+    }
+  }
+
+  private async loadMesh(path: string, ignoreGameMesh: boolean = false): Promise<MeshResult> {
+    const objText: string = await (await Util.loadFile(path)).text();
     const vertexData: number[] = [];
     const indexData: number[] = [];
     const vertices: Vector3[] = [];
@@ -36,7 +57,8 @@ export class GameMesh {
         const z: number = parseFloat(parts[3]);
 
         vertices.push(new Vector3(x, y, z));
-        vertexData.push(x, y, z);
+
+        if (!ignoreGameMesh) vertexData.push(x, y, z);
 
       } else if (parts[0] === "f") {
         // This is a face line: f v1 v2 v3 or f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 ...
@@ -49,30 +71,50 @@ export class GameMesh {
           faceIndicies.push(vertexIndex);
         }
 
-        // Split faces into triangles if there are more than 3 vertices
-        if (faceIndicies.length === 3) {
-          const tri = new MeshTriangle(faceIndicies[0], faceIndicies[1], faceIndicies[2]);
-
-          triangles.push(tri);
-          indexData.push(tri.v0, tri.v1, tri.v2); // Directly add triangle
+        // Triangulate the polygon (basic method)
+        for (let i = 1; i < faceIndicies.length - 1; i++) {
+          const [v0, v1, v2]: [number, number, number] = [faceIndicies[0], faceIndicies[i], faceIndicies[i + 1]];
           
-        } else {
-          // For polygons with more than 4 vertices, triangulate the polygon (basic method)
-          for (let i = 1; i < faceIndicies.length - 1; i++) {
-            const tri = new MeshTriangle(faceIndicies[0], faceIndicies[i], faceIndicies[i + 1]);
+          indexData.push(v0, v1, v2);
 
-            triangles.push(tri);
-            indexData.push(tri.v0, tri.v1, tri.v2);
-          }
+          if (!ignoreGameMesh) triangles.push(new MeshTriangle(v0, v1, v2));
         }
       }
     });
 
-    return [
-      new GameMesh(vertices, triangles),
-      new RenderMesh(new Float32Array(vertexData), new Uint16Array(indexData))
-    ];
+    const result: MeshResult = { renderMesh: new RenderMesh(vertexData, indexData) };
+
+    if (!ignoreGameMesh) result.gameMesh = new GameMesh(vertices, triangles);
+
+    return result;
   }
+
+  public createRenderModel(name: MeshName): RenderModel {
+    return new RenderModel(this.meshes.get(name)!.renderMesh);
+  }
+
+  public createGameModel(name: MeshName): GameModel {
+    const gameMesh: GameMesh | undefined = this.meshes.get(name)!.gameMesh;
+
+    if (!gameMesh) throw new Error(`Game mesh does not exist for ${name}`);
+
+    return new GameModel(gameMesh);
+  }
+}
+
+export class MeshTriangle {
+  constructor(
+    public readonly v0: number,
+    public readonly v1: number,
+    public readonly v2: number
+  ) {}
+}
+
+export class GameMesh {
+  constructor(
+    public readonly vertices: Vector3[],
+    public readonly triangles: MeshTriangle[]
+  ) {}
 }
 
 export class GameModel {
@@ -112,9 +154,9 @@ export class RenderMesh {
   public readonly indexBuffer: WebGLBuffer;
   public readonly indexCount: number;
 
-  constructor(vertexData: Float32Array, indexData: Uint16Array) {
-    this.vertexBuffer = Game.instance.canvas.createBuffer(vertexData);
-    this.indexBuffer = Game.instance.canvas.createBuffer(indexData, true);
+  constructor(vertexData: number[], indexData: number[]) {
+    this.vertexBuffer = Game.instance.canvas.createBuffer(new Float32Array(vertexData));
+    this.indexBuffer = Game.instance.canvas.createBuffer(new Uint16Array(indexData), true);
     this.indexCount = indexData.length;
   }
 }

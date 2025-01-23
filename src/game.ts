@@ -5,10 +5,12 @@ import { Bounds, Capsule, Ray, Triangle } from "./collisions.js";
 import { Control, Controller } from "./controller.js";
 import { Entity } from "./entity.js";
 import { Matrix4 } from "./matrix4.js";
-import { GameMesh, GameModel, RenderMesh, RenderModel } from "./mesh.js";
+import { GameMesh, GameModel, MeshLoader, RenderMesh, RenderModel } from "./mesh.js";
 import { Player } from "./player.js";
 import { AudioManager } from "./audiomanager.js";
 import { Vector3 } from "./vector3.js";
+import { GameEvent } from "./gameevent.js";
+import { UIManager } from "./uimanager.js";
 
 /** Handle game loop */
 export abstract class Gameloop {
@@ -73,14 +75,17 @@ export class Game extends Gameloop {
 
   public readonly canvas: Canvas = new Canvas();
   public readonly camera: Camera = new Camera();
-  public readonly controller: Controller = new Controller();
+  public readonly meshLoader: MeshLoader = new MeshLoader();
   public readonly audioManager: AudioManager = new AudioManager();
+  public readonly uiManager: UIManager = new UIManager();
+  public readonly controller: Controller = new Controller();
   public readonly bvh: BVH = new BVH();
   
-  public readonly player: Player = new Player();
+  public player: Player = new Player();
   public renderModels: Map<RenderMesh, Set<RenderModel>> = new Map();
 
-  // public readonly onUpdate: GameEvent = new GameEvent();
+  public readonly firstStep: GameEvent = new GameEvent();
+  public readonly postPhysicsStep: GameEvent = new GameEvent();
 
   public static get instance(): Game {
     if (!Game._instance) Game._instance = new Game();
@@ -89,27 +94,53 @@ export class Game extends Gameloop {
   }
 
   public async init(): Promise<void> {
-    await this.canvas.init();
+    const canvasPromise: Promise<void> = this.canvas.init();
 
-    const [gameMesh, renderMesh] = await GameMesh.fromFile("res/models/map.obj");
+    canvasPromise.then(() => {
+      this.meshLoader.init();
+    });
 
-    this.bvh.init([new GameModel(gameMesh)]);
-    this.canvas.registerModel(new RenderModel(renderMesh));
+    await Promise.all([
+      canvasPromise,
+      this.audioManager.init(),
+      this.uiManager.awaitUserInteract()
+    ]);
 
-    const [_, monsterMesh] = await GameMesh.fromFile("res/models/monster.obj");
-    this.canvas.registerModel(new RenderModel(monsterMesh));
+    const monster: RenderModel = this.meshLoader.createRenderModel("monster");
+
+    const mapRender: RenderModel = this.meshLoader.createRenderModel("map");
+    const mapModel: GameModel = this.meshLoader.createGameModel("map");
+
+    this.bvh.init([mapModel]);
+
+    this.canvas.registerModel(mapRender);
+    this.canvas.registerModel(monster);
+
+    this.uiManager.promptMenu();
+  }
+
+  public startGame(): void {
+    this.player = new Player();
 
     this.camera.subject = this.player;
     this.camera.subjectOffset = new Vector3(0, 1.5, 0);
+
+    this.audioManager.getAudio("ambience").emit(true);
+
+    this.controller.lockMouse();
 
     this.start();
   }
 
   protected update(deltaTime: number): void {
+    this.firstStep.fire(deltaTime);
+
     this.player.prePhysicsBehaviour(deltaTime);
     this.player.update(deltaTime);
     this.camera.update(deltaTime);
     this.player.postPhysicsBehaviour();
+
+    this.postPhysicsStep.fire(deltaTime);
   }
 
   protected render(): void {

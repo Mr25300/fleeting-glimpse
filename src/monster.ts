@@ -11,8 +11,8 @@ class Monster extends Entity {
   private aggression: number = 0;
   private maxAggression: number = 100;
 
-  private roamSpeed: number = 4;
-  private chaseSpeed: 18;
+  private roamSpeed: number = 6;
+  private chaseSpeed: 20;
 
   constructor() {
     super(
