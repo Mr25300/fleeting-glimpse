@@ -56,9 +56,9 @@ export class MeshLoader {
         const y: number = parseFloat(parts[2]);
         const z: number = parseFloat(parts[3]);
 
-        vertices.push(new Vector3(x, y, z));
+        vertexData.push(x, y, z);
 
-        if (!ignoreGameMesh) vertexData.push(x, y, z);
+        if (!ignoreGameMesh) vertices.push(new Vector3(x, y, z));
 
       } else if (parts[0] === "f") {
         // This is a face line: f v1 v2 v3 or f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 ...

@@ -8,7 +8,8 @@ export abstract class Entity {
   private MAX_SLOPE: number = 80 * Math.PI / 180;
 
   private _moveDirection: Vector3 = Vector3.zero;
-  private _faceDirection: Vector3 = new Vector3(0, 0, -1);
+  private _aimDirection: Vector3 = Matrix4.identity.lookVector;
+  private _faceMatrix: Matrix4 = Matrix4.identity;
   private _moveSpeed: number = 0;
   private fallSpeed: number = 0;
   private _onFloor: boolean = false;
@@ -23,20 +24,30 @@ export abstract class Entity {
     return this._moveDirection;
   }
 
+  public get aimDirection(): Vector3 {
+    return this._aimDirection;
+  }
+
+  public get faceMatrix(): Matrix4 {
+    return this._faceMatrix;
+  }
+
   public set moveDirection(direction: Vector3) {
-    this._moveDirection = direction.unit;
+    this._moveDirection = new Vector3(direction.x, 0, direction.z).unit;
   }
 
-  public set faceDirection(direction: Vector3) {
-    this._faceDirection = direction.unit;
-  }
+  public set aimDirection(direction: Vector3) {
+    if (direction.magnitude !== 0) this._aimDirection = direction.unit;
 
-  public get onFloor(): boolean {
-    return this._onFloor;
+    this._faceMatrix = Matrix4.fromLookVector(new Vector3(this._aimDirection.x, 0, this._aimDirection.z).unit);
   }
 
   public set moveSpeed(speed: number) {
     this._moveSpeed = Math.max(0, speed);
+  }
+
+  public get onFloor(): boolean {
+    return this._onFloor;
   }
 
   public impulseUp(magnitude: number): void {
@@ -47,7 +58,7 @@ export abstract class Entity {
   public abstract postPhysicsBehaviour(deltaTime: number): void;
 
   private handleCollisions(vertical: boolean): [boolean, Vector3] {
-    this.hitbox.setTransformation(Matrix4.fromPosition(this._position).multiply(Matrix4.fromLookVector(this._faceDirection)));
+    this.hitbox.setTransformation(Matrix4.fromPosition(this._position).multiply(this._faceMatrix));
 
     const corrections: Vector3[] = [];
 
@@ -93,7 +104,7 @@ export abstract class Entity {
     return [corrections.length > 0, totalCorrection];
   }
 
-  public update(deltaTime: number): void {
+  public updatePhysics(deltaTime: number): void {
     const fallDisplacement: Vector3 = Vector3.y.multiply(-this.fallSpeed * deltaTime);
     const gravDisplacement: Vector3 = Vector3.y.multiply(-this.GRAV_ACCEL * deltaTime ** 2 / 2);
 
@@ -111,9 +122,5 @@ export abstract class Entity {
     this._position = this._position.add(moveDisplacement);
 
     this.handleCollisions(false);
-
-    // const [intersects, normal, overlap] = this.hitbox.getTriangleIntersection(Game.instance.testTri);
-
-    // if (intersects) this.position = this.position.add(normal!.multiply(overlap!));
   }
 }

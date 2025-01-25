@@ -42,7 +42,7 @@ void main() {
   float dotFade = 1.0 - quadEasing((time - dotTime) / DOT_FADE_TIME);
   
   vec3 worldPosition = dotPos + (orientation * vertexPos) * DOT_SCALE; // scale up normal offset as distance increases
-  vec3 normalAddition = dotNormal * NORMAL_OFFSET * distance(worldPosition, lightSource) / 4.0 * (dotFade + 9.0) / 10.0;
+  vec3 normalAddition = dotNormal * NORMAL_OFFSET * distance(worldPosition, lightSource) / 4.0 * (dotFade + 1.0) / 2.0;
   vec3 finalPosition = worldPosition + normalAddition;
   
   gl_Position = projectionMatrix * viewMatrix * vec4(finalPosition, 1.0);

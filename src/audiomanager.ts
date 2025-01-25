@@ -3,7 +3,7 @@ import { Game } from "./game.js";
 import { EventConnection } from "./gameevent.js";
 import { Util } from "./util.js";
 
-type AudioName = "menu" | "click" | "ambience" | "footstep" | "scanning" | "aggression";
+type AudioName = "menu" | "click" | "ambience" | "footstep" | "scanning" | "heartbeat" | "aggression";
 
 interface AudioInfo {
   name: AudioName,
@@ -18,9 +18,10 @@ export class AudioManager {
     { name: "menu", volume: 1, looped: true },
     { name: "click", volume: 1, looped: false },
     { name: "ambience", volume: 1, looped: true },
-    { name: "footstep", volume: 1, looped: false, frequency: 0.8 },
+    { name: "footstep", volume: 4, looped: false, frequency: 0.8 },
     { name: "scanning", volume: 1, looped: true },
-    { name: "aggression", volume: 1, looped: false, range: 20 }
+    { name: "heartbeat", volume: 1, looped: false, frequency: 1.5 },
+    { name: "aggression", volume: 1.5, looped: false, range: 20 }
   ]
 
   private context: AudioContext = new AudioContext();
@@ -41,7 +42,11 @@ export class AudioManager {
     }
   }
 
-  public async loadAudio(info: AudioInfo): Promise<AudioEffect> {
+  public start(): void {
+    this.context.resume();
+  }
+
+  private async loadAudio(info: AudioInfo): Promise<AudioEffect> {
     const path: string = `res/audio/${info.name}.mp3`;
     const arrayBuffer: ArrayBuffer = await (await Util.loadFile(path)).arrayBuffer();
     const buffer: AudioBuffer = await this.context.decodeAudioData(arrayBuffer);
@@ -49,16 +54,13 @@ export class AudioManager {
     return new AudioEffect(this.context, buffer, info.volume, info.looped, info.range, info.frequency);
   }
 
-  public getAudio(name: AudioName): AudioEffect {
+  public get(name: AudioName): AudioEffect {
     return this.audios.get(name)!;
   }
 }
 
 export class AudioEffect {
   private defaultGain: GainNode;
-
-  private volumeScale: number = 1;
-  private frequencyScale: number = 1;
 
   private timePassed: number = 0;
   private updateConnection?: EventConnection;
@@ -76,17 +78,13 @@ export class AudioEffect {
     this.defaultGain.connect(this.context.destination);
   }
 
-  public set volume(scale: number) {
-    this.volumeScale = Math.max(scale, 0);
-  }
-
-  public set frequency(scale: number) {
-    this.frequencyScale = Math.max(scale, 0);
+  public createEmitter(): AudioEmitter {
+    return new AudioEmitter(this, this.emitFrequency);
   }
 
   public emit(autoPlay?: boolean): AudioEmission {
     const gainNode: GainNode = this.context.createGain();
-    gainNode.gain.value = this.volumeScale;
+    gainNode.gain.value = 1;
     gainNode.connect(this.defaultGain);
 
     const source: AudioBufferSourceNode = this.context.createBufferSource();
@@ -96,32 +94,51 @@ export class AudioEffect {
 
     return new AudioEmission(source, gainNode, this.range, autoPlay);
   }
+}
 
-  public startEffect(): void {
-    if (this.updateConnection) return;
+export class AudioEmitter {
+  private frequencyScale: number = 1;
 
-    this.timePassed = 0;
-    this.emit(true);
+  private _active: boolean = false;
+  private timePassed: number = 0;
+  private updateConnection?: EventConnection;
 
-    this.updateConnection = Game.instance.postPhysicsStep.connect((deltaTime: number) => {
-      this.updateEffect(deltaTime);
-    })
+  constructor(private audio: AudioEffect, private emitFrequency: number = 1) {}
+
+  public get active(): boolean {
+    return this._active;
   }
 
-  public stopEffect(): void {
-    if (!this.updateConnection) return;
-      
-    this.updateConnection.disconnect();
-    delete this.updateConnection;
+  public set frequency(scale: number) {
+    this.frequencyScale = Math.max(scale, 0);
   }
 
-  private updateEffect(deltaTime: number): void {
+  public start(): void {
+    if (this._active) return;
+    this._active = true;
+
+    this.audio.emit(true);
+
+    this.updateConnection = Game.instance.lastStep.connect((deltaTime: number) => {
+      this.update(deltaTime)
+    });
+  }
+
+  private update(deltaTime: number): void {
     this.timePassed += deltaTime * this.frequencyScale;
 
     while (this.timePassed > this.emitFrequency) {
       this.timePassed -= this.emitFrequency;
-      this.emit(true);
+      this.audio.emit(true);
     }
+  }
+
+  public stop(): void {
+    if (!this._active) return;
+    this._active = false;
+
+    if (this.updateConnection) this.updateConnection.disconnect();
+    delete this.updateConnection;
   }
 }
 
@@ -153,7 +170,7 @@ export class AudioEmission {
       this.updateConnection.disconnect();
 
     } else if (this._subject && !this.updateConnection) {
-      this.updateConnection = Game.instance.postPhysicsStep.connect(() => {
+      this.updateConnection = Game.instance.lastStep.connect(() => {
         this.updateVolume();
       });
     }

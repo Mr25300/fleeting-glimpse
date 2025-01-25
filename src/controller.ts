@@ -11,11 +11,20 @@ export enum Control {
 }
 
 export class Controller {
+  private xMovement: number = 0;
+  private yMovement: number = 0;
+  private _scrollMovement: number = 0;
+
   private activeControls: Map<Control, boolean> = new Map();
 
   constructor() {
     document.addEventListener("mousemove", (event: MouseEvent) => {
-      Game.instance.camera.rotate(-event.movementX / 200, -event.movementY / 200);
+      this.xMovement += event.movementX;
+      this.yMovement -= event.movementY;
+    });
+
+    document.addEventListener("wheel", (event: WheelEvent) => {
+      this._scrollMovement = event.deltaY;
     });
 
     document.addEventListener("mousedown", () => {
@@ -33,6 +42,24 @@ export class Controller {
     document.addEventListener("keyup", (event: KeyboardEvent) => {
       this.activeControls.set(event.key.toLowerCase() as Control, false);
     });
+  }
+
+  public get aimMovement(): [number, number] {
+    const totalX: number = this.xMovement;
+    const totalY: number = this.yMovement;
+
+    this.xMovement = 0;
+    this.yMovement = 0;
+
+    return [totalX, totalY]
+  }
+
+  public get scrollMovement(): number {
+    const movement: number = this._scrollMovement;
+
+    this._scrollMovement = 0;
+
+    return movement;
   }
 
   public controlActive(control: Control): boolean {

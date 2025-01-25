@@ -1,14 +1,19 @@
 import { Vector3 } from "./vector3.js";
 
 export class Matrix4 {
+  private _lookVector?: Vector3;
+  private _upVector?: Vector3;
+  private _rightVector?: Vector3;
+  private _transposed?: Matrix4;
+  
+  private constructor(private values: Float32Array) {}
+
   public static readonly identity: Matrix4 = Matrix4.create(
     1, 0, 0, 0,
     0, 1, 0, 0,
     0, 0, 1, 0,
     0, 0, 0, 1
   );
-  
-  private constructor(private values: Float32Array) {}
 
   public static create(...values: number[]): Matrix4 {
     const matrixArray: Float32Array = new Float32Array(16);
@@ -91,7 +96,9 @@ export class Matrix4 {
     );
   }
 
-  public static fromLookVector(look: Vector3, up: Vector3 = new Vector3(0, 1, 0)): Matrix4 {
+  public static fromLookVector(look: Vector3, up: Vector3 = Vector3.y): Matrix4 {
+    look = look.multiply(-1); // For a right-handed coordinate system
+
     const right: Vector3 = up.cross(look);
 
     return Matrix4.create(
@@ -103,15 +110,19 @@ export class Matrix4 {
   }
 
   public transpose(): Matrix4 {
-    const transposed = new Float32Array(16);
+    if (!this._transposed) {
+      const transposed = new Float32Array(16);
 
-    for (let r: number = 0; r < 4; r++) {
-      for (let c: number = 0; c < 4; c++) {
-        transposed[c * 4 + r] = this.values[r * 4 + c];
+      for (let r: number = 0; r < 4; r++) {
+        for (let c: number = 0; c < 4; c++) {
+          transposed[c * 4 + r] = this.values[r * 4 + c];
+        }
       }
+
+      this._transposed = new Matrix4(transposed);
     }
 
-    return new Matrix4(transposed);
+    return this._transposed;
   }
 
   public multiply(matrix: Matrix4): Matrix4 {
@@ -146,7 +157,7 @@ export class Matrix4 {
       newValues[r] = dotSum;
     }
 
-    return new Vector3(newValues[0] / newValues[3], newValues[1] / newValues[3], newValues[2]);
+    return new Vector3(newValues[0] / newValues[3], newValues[1] / newValues[3], newValues[2] / newValues[3]);
   }
 
   public translate(translation: Vector3): Matrix4 {
@@ -179,15 +190,21 @@ export class Matrix4 {
   // }
 
   public get lookVector(): Vector3 {
-    return new Vector3(-this.values[2], -this.values[6], -this.values[10]);
+    if (!this._lookVector) this._lookVector = new Vector3(-this.values[2], -this.values[6], -this.values[10])
+
+    return this._lookVector;
   }
 
   public get upVector(): Vector3 {
-    return new Vector3(this.values[1], this.values[5], this.values[9]);
+    if (!this._upVector) this._upVector = new Vector3(this.values[1], this.values[5], this.values[9]);
+
+    return this._upVector;
   }
   
   public get rightVector(): Vector3 {
-    return new Vector3(this.values[0], this.values[4], this.values[8]);
+    if (!this._rightVector) this._rightVector = new Vector3(this.values[0], this.values[4], this.values[8]);
+    
+    return this._rightVector;
   }
 
   public glFormat(): Float32Array {

@@ -1,3 +1,4 @@
+import { Entity } from "./entity.js";
 import { Game } from "./game.js";
 import { Matrix4 } from "./matrix4.js";
 import { RenderMesh, RenderModel } from "./mesh.js";
@@ -12,8 +13,7 @@ interface Dot {
 /** Encapsulates the game"s screen and all relevant functionality. */
 export class Canvas {
   private readonly DOT_RESOLUTION: number = 7;
-
-  private readonly MAX_DOT_COUNT: number = 10000000;
+  private readonly MAX_DOT_COUNT: number = 1000000;
 
   private element: HTMLCanvasElement;
   private gl: WebGL2RenderingContext;
@@ -192,44 +192,37 @@ export class Canvas {
     this.dotShader.use();
 
     if (this.dotQueue.length > 0) {
-      let dotsProcessed: number = 0;
+      const dotData: Float32Array = new Float32Array(this.dotQueue.length * (3 + 3 + 1));
 
-      while (dotsProcessed < this.dotQueue.length) {
-        let amountToProcess = this.dotQueue.length;
+      for (let i = 0; i < this.dotQueue.length; i++) {
+        if (i >= this.MAX_DOT_COUNT) break;
 
-        if (this.currentDot + amountToProcess >= this.MAX_DOT_COUNT) amountToProcess = this.MAX_DOT_COUNT - this.currentDot;
+        const dot: Dot = this.dotQueue[i];
 
-        const dotData: Float32Array = new Float32Array(amountToProcess * (3 + 3 + 1));
+        dotData[i * 7] = dot.position.x;
+        dotData[i * 7 + 1] = dot.position.y;
+        dotData[i * 7 + 2] = dot.position.z;
 
-        for (let i = 0; i < amountToProcess; i++) {
-          const dot: Dot = this.dotQueue[dotsProcessed];
+        dotData[i * 7 + 3] = dot.normal.x;
+        dotData[i * 7 + 4] = dot.normal.y;
+        dotData[i * 7 + 5] = dot.normal.z;
 
-          dotData[i * 7] = dot.position.x;
-          dotData[i * 7 + 1] = dot.position.y;
-          dotData[i * 7 + 2] = dot.position.z;
-
-          dotData[i * 7 + 3] = dot.normal.x;
-          dotData[i * 7 + 4] = dot.normal.y;
-          dotData[i * 7 + 5] = dot.normal.z;
-
-          dotData[i * 7 + 6] = Game.instance.elapsedTime;
-
-          dotsProcessed++;
-        }
-
-        this.modifyArrayBuffer(this.dotBuffer, dotData, this.currentDot * (3 + 3 + 1));
-
-        this.currentDot = (this.currentDot + dotsProcessed) % this.MAX_DOT_COUNT;
+        dotData[i * 7 + 6] = Game.instance.elapsedTime;
       }
 
-      this.dotCount += this.dotQueue.length;
+      if (this.currentDot + this.dotQueue.length > this.MAX_DOT_COUNT) this.currentDot = 0;
+
+      this.modifyArrayBuffer(this.dotBuffer, dotData, this.currentDot * (3 + 3 + 1));
+
+      this.currentDot += this.dotQueue.length;
+      this.dotCount = Math.min(this.dotCount + this.dotQueue.length, this.MAX_DOT_COUNT);
       this.dotQueue.length = 0;
     }
 
     this.dotShader.setUniformMatrix("viewMatrix", viewMatrix);
     this.dotShader.setUniformMatrix("projectionMatrix", projectionMatrix);
-    this.dotShader.setUniformVector("lightSource", Game.instance.player.position);
     this.dotShader.setUniformFloat("time", Game.instance.elapsedTime);
+    this.dotShader.setUniformVector("lightSource", Game.instance.camera.position);
 
     this.dotShader.setAttribBuffer("vertexPos", this.dotVertexBuffer, 3, 0, 0);
     this.dotShader.setAttribBuffer("dotPos", this.dotBuffer, 3, 7, 0, 1);
@@ -237,7 +230,5 @@ export class Canvas {
     this.dotShader.setAttribBuffer("dotTime", this.dotBuffer, 1, 7, 6, 1);
 
     this.gl.drawArraysInstanced(this.gl.TRIANGLE_FAN, 0, this.DOT_RESOLUTION, this.dotCount);
-
-    // console.log(this.dotCount);
   }
 }

@@ -16,7 +16,7 @@ export class UIManager {
   }
 
   private buttonPress(): void {
-    Game.instance.audioManager.getAudio("click").emit(true);
+    Game.instance.audioManager.get("click").emit(true);
   }
 
   public promptMenu(): void {
@@ -27,7 +27,7 @@ export class UIManager {
 
     document.body.appendChild(menu);
 
-    const menuAudio: AudioEmission = Game.instance.audioManager.getAudio("menu").emit(true);
+    const menuAudio: AudioEmission = Game.instance.audioManager.get("menu").emit(true);
 
     button.addEventListener("click", () => {
       menuAudio.stop();
@@ -38,7 +38,7 @@ export class UIManager {
       this.buttonPress();
 
       setTimeout(() => {
-        Game.instance.startGame();
+        Game.instance.start();
 
         menu.remove();
 
