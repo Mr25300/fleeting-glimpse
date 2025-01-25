@@ -130,7 +130,7 @@ export class Game extends Gameloop {
   public start(): void {
     const player: Player = new Player();
     const monster: Monster = new Monster(this.monsterModel, player);
-
+    
     this.entities.add(player);
     this.entities.add(monster);
 

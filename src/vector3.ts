@@ -1,4 +1,4 @@
-export class Vector3 { // Consider general vector class which stores values in float32array
+export class Vector3 {
   private _magnitude?: number;
   private _unit?: Vector3;
 
@@ -56,5 +56,13 @@ export class Vector3 { // Consider general vector class which stores values in f
       this.z * vector.x - this.x * vector.z,
       this.x * vector.y - this.y * vector.x
     );
+  }
+
+  public orthogonal(): Vector3 {
+    let perpendicular: Vector3 = this.cross(Vector3.x).unit;
+
+    if (perpendicular.magnitude === 0) perpendicular = this.cross(Vector3.y).unit;
+
+    return perpendicular;
   }
 }

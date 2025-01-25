@@ -98,7 +98,8 @@ export class Player extends Entity {
   }
 
   public postPhysicsBehaviour(): void {
-    const look: Matrix4 = Matrix4.fromLookVector(this.aimDirection);
+    const direction: Vector3 = this.aimDirection;
+    const perpendicular: Vector3 = direction.orthogonal();
 
     const scroll: number = Game.instance.controller.scrollMovement;
     this.scanAngle = Util.clamp(this.scanAngle + scroll * Math.PI / 180 / 50, this.MIN_SCAN_ANGLE, this.MAX_SCAN_ANGLE);
@@ -107,11 +108,15 @@ export class Player extends Entity {
       this.scanTimer.start();
 
       for (let i: number = 0; i < this.DOTS_PER_SCAN; i++) {
-        const roll: Matrix4 = Matrix4.fromRotationZ(2 * Math.PI * Math.random())
-        const incline: Matrix4 = Matrix4.fromRotationX(this.scanAngle * Math.random());
-        const final: Matrix4 = look.multiply(roll).multiply(incline);
+        const roll: number = 2 * Math.PI * Math.random();
+        const pitch: number = this.scanAngle * Math.random();
 
-        const ray = new Ray(Game.instance.camera.position, final.lookVector);
+        const pitchMatrix = Matrix4.fromAxisAngle(perpendicular, pitch);
+        const rollMatrix = Matrix4.fromAxisAngle(this.aimDirection, roll);
+
+        const direction: Vector3 = rollMatrix.apply(pitchMatrix.apply(this.aimDirection));
+
+        const ray = new Ray(Game.instance.camera.position, direction);
         const info: RaycastInfo | undefined = Game.instance.bvh.raycast(ray);
   
         if (info) Game.instance.canvas.createDot(info.position, info.normal);

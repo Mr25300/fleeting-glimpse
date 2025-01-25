@@ -97,15 +97,38 @@ export class Matrix4 {
   }
 
   public static fromLookVector(look: Vector3, up: Vector3 = Vector3.y): Matrix4 {
-    look = look.multiply(-1); // For a right-handed coordinate system
+    look = look.unit.multiply(-1); // For a right-handed coordinate system
+    up = up.unit;
 
-    const right: Vector3 = up.cross(look);
+    if (look.dot(up) === 1) {
+      up = Math.abs(look.y) > 0.9 ? Vector3.z : Vector3.y;
+    }
+
+    const right: Vector3 = up.cross(look).unit;
+
+    up = look.cross(right).unit;
 
     return Matrix4.create(
       right.x, up.x, look.x, 0,
       right.y, up.y, look.y, 0,
       right.z, up.z, look.z, 0,
       0, 0, 0, 1
+    );
+  }
+
+  static fromAxisAngle(axis: Vector3, angle: number): Matrix4 {
+    axis = axis.unit;
+
+    const [x, y, z]: [number, number, number] = [axis.x, axis.y, axis.z];
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const t = 1 - cos;
+
+    return Matrix4.create(
+      t * x * x + cos, t * x * y - z * sin, t * x * z + y * sin, 0,
+      t * x * y + z * sin, t * y * y + cos, t * y * z - x * sin, 0,
+      t * x * z - y * sin, t * y * z + x * sin, t * z * z + cos, 0,
+      0, 0, 0, 1,
     );
   }
 
@@ -203,7 +226,7 @@ export class Matrix4 {
   
   public get rightVector(): Vector3 {
     if (!this._rightVector) this._rightVector = new Vector3(this.values[0], this.values[4], this.values[8]);
-    
+
     return this._rightVector;
   }
 
