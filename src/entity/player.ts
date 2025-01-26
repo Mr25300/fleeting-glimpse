@@ -1,13 +1,13 @@
-import { AudioEmission, AudioEmitter } from "../audiomanager.js";
+import { AudioEmission, AudioEmitter } from "../audio/audiomanager.js";
 import { RaycastInfo } from "../collisions/bvh.js";
 import { Capsule, Ray } from "../collisions/collisions.js";
-import { Control } from "../controller.js";
+import { Control } from "../interfacing/controller.js";
 import { Entity } from "./entity.js";
-import { Game } from "../game.js";
-import { Matrix4 } from "../matrix4.js";
-import { Timer } from "../timer.js";
-import { Util } from "../util.js";
-import { Vector3 } from "../vector3.js";
+import { Game } from "../core/game.js";
+import { Matrix4 } from "../math/matrix4.js";
+import { Timer } from "../util/timer.js";
+import { Util } from "../util/util.js";
+import { Vector3 } from "../math/vector3.js";
 
 export class Player extends Entity {
   public readonly MIN_SCAN_ANGLE: number = 3 * Math.PI / 180;

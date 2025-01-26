@@ -1,7 +1,7 @@
-import { Entity } from "./entity/entity.js";
-import { Matrix4 } from "./matrix4.js";
-import { Util } from "./util.js";
-import { Vector3 } from "./vector3.js";
+import { Entity } from "../entity/entity.js";
+import { Matrix4 } from "../math/matrix4.js";
+import { Util } from "../util/util.js";
+import { Vector3 } from "../math/vector3.js";
 
 export class Camera {
   private readonly MIN_FOV: number = 1;

@@ -1,7 +1,7 @@
-import { Entity } from "./entity/entity.js";
-import { Game } from "./game.js";
-import { EventConnection } from "./gameevent.js";
-import { Util } from "./util.js";
+import { Entity } from "../entity/entity.js";
+import { Game } from "../core/game.js";
+import { EventConnection } from "../util/gameevent.js";
+import { Util } from "../util/util.js";
 
 type AudioName = "menu" | "click" | "ambience" | "footstep" | "scanning" | "heartbeat" | "aggression" | "static";
 

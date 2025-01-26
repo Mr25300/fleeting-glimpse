@@ -1,7 +1,7 @@
-import { AudioEmission } from "./audiomanager.js";
-import { Monster } from "./entity/monster.js";
-import { Player } from "./entity/player.js";
-import { Game } from "./game.js";
+import { AudioEmission } from "../audio/audiomanager.js";
+import { Monster } from "../entity/monster.js";
+import { Player } from "../entity/player.js";
+import { Game } from "../core/game.js";
 
 export class UIManager {
   private readonly LOAD_TEMPLATE: HTMLTemplateElement = document.getElementById("loading-screen-template") as HTMLTemplateElement;

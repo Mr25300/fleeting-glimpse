@@ -1,4 +1,4 @@
-import { Game } from "./game.js";
+import { Game } from "../core/game.js";
 import { EventConnection } from "./gameevent.js";
 
 /** Manages timer and delay logic for attacks and cooldowns. */

@@ -1,9 +1,9 @@
-import { Entity } from "./entity/entity.js";
-import { Game } from "./game.js";
-import { Matrix4 } from "./matrix4.js";
-import { RenderMesh, RenderModel } from "./mesh.js";
+import { Entity } from "../entity/entity.js";
+import { Game } from "../core/game.js";
+import { Matrix4 } from "../math/matrix4.js";
+import { RenderMesh, RenderModel } from "../mesh/mesh.js";
 import { ShaderProgram } from "./shaderprogram.js";
-import { Vector3 } from "./vector3.js";
+import { Vector3 } from "../math/vector3.js";
 
 interface Dot {
   position: Vector3;

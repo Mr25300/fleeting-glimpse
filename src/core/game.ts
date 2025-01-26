@@ -1,14 +1,14 @@
-import { BVH } from "./collisions/bvh.js";
-import { Camera } from "./camera.js";
-import { Canvas } from "./canvas.js";
-import { Controller } from "./controller.js";
-import { GameModel, MeshLoader, RenderModel } from "./mesh.js";
-import { Player } from "./entity/player.js";
-import { AudioEmission, AudioManager } from "./audiomanager.js";
-import { Vector3 } from "./vector3.js";
-import { GameEvent } from "./gameevent.js";
-import { UIManager } from "./uimanager.js";
-import { Monster } from "./entity/monster.js";
+import { BVH } from "../collisions/bvh.js";
+import { Camera } from "../rendering/camera.js";
+import { Canvas } from "../rendering/canvas.js";
+import { Controller } from "../interfacing/controller.js";
+import { GameModel, MeshLoader, RenderModel } from "../mesh/mesh.js";
+import { Player } from "../entity/player.js";
+import { AudioEmission, AudioManager } from "../audio/audiomanager.js";
+import { Vector3 } from "../math/vector3.js";
+import { GameEvent } from "../util/gameevent.js";
+import { UIManager } from "../interfacing/uimanager.js";
+import { Monster } from "../entity/monster.js";
 
 /** Handle game loop */
 export abstract class Gameloop {
