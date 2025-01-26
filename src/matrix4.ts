@@ -183,14 +183,6 @@ export class Matrix4 {
     return new Vector3(newValues[0] / newValues[3], newValues[1] / newValues[3], newValues[2] / newValues[3]);
   }
 
-  public translate(translation: Vector3): Matrix4 {
-    return this.multiply(Matrix4.fromPosition(translation));
-  }
-
-  public rotate(yaw: number, pitch: number, roll: number): Matrix4 {
-    return this.multiply(Matrix4.fromRotation(yaw, pitch, roll));
-  }
-
   public get position(): Vector3 {
     return new Vector3(this.values[3], this.values[7], this.values[11]);
   }
@@ -203,14 +195,6 @@ export class Matrix4 {
       0, 0, 0, 1
     );
   }
-
-  // public get angles(): Vector3 { // FIX THIS!!!
-  //   return new Vector3(
-  //     Math.atan2(this.values[9], this.values[10]),
-  //     Math.asin(-this.values[8]),
-  //     Math.atan2(this.values[4], this.values[0])
-  //   );
-  // }
 
   public get lookVector(): Vector3 {
     if (!this._lookVector) this._lookVector = new Vector3(-this.values[2], -this.values[6], -this.values[10])

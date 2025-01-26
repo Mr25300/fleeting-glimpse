@@ -17,9 +17,7 @@ out float fragFadeScale;
 
 float DOT_SCALE = 0.15;
 float NORMAL_OFFSET = 0.01;
-float DOT_FADE_TIME = 60.0;
-
-// float NORMAL_OFFSET_PER_UNIT_OF_DISTANCE = 0.001;
+float DOT_FADE_TIME = 30.0;
 
 float quadEasing(float time) {
   return pow(time, 4.0);

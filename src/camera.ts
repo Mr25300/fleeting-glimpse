@@ -1,4 +1,4 @@
-import { Entity } from "./entity.js";
+import { Entity } from "./entity/entity.js";
 import { Matrix4 } from "./matrix4.js";
 import { Util } from "./util.js";
 import { Vector3 } from "./vector3.js";
@@ -57,5 +57,10 @@ export class Camera {
     }
 
     this.currentFov = this.goalFov + (this.currentFov - this.goalFov) * Math.exp(-this.FOV_SPEED_FACTOR * deltaTime);
+  }
+
+  public reset(): void {
+    this.currentFov = this.goalFov = 70;
+    this.pitch = this.yaw = this.roll = 0;
   }
 }

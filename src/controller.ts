@@ -1,5 +1,3 @@
-import { Game } from "./game.js";
-
 export enum Control {
   moveF = "w",
   moveL = "a",
@@ -7,10 +5,17 @@ export enum Control {
   moveB = "s",
   jump = " ",
   sprint = "shift",
-  glimpse = "mouseclick"
+  scan = "mouseclick"
 }
 
 export class Controller {
+  private readonly MOUSE_SENSITIVITY: number = 1 / 200;
+  private readonly SCROLL_SENSITIVITY: number = Math.PI / 180 / 50;
+
+  private mouseLocked: boolean = false;
+  private alreadyAwaiting: boolean = false;
+  private lockWaitPromise?: Promise<void>;
+
   private xMovement: number = 0;
   private yMovement: number = 0;
   private _scrollMovement: number = 0;
@@ -27,11 +32,23 @@ export class Controller {
       this._scrollMovement = event.deltaY;
     });
 
-    document.addEventListener("mousedown", () => {
+    document.addEventListener("mousedown", (event: MouseEvent) => {
       this.activeControls.set("mouseclick" as Control, true);
+
+      if (this.mouseLocked && !document.pointerLockElement) {
+        if (this.lockWaitPromise) {
+          if (!this.alreadyAwaiting) {
+            this.alreadyAwaiting = true;
+            this.lockWaitPromise.then(() => document.body.requestPointerLock())
+          }
+
+        } else {
+          document.body.requestPointerLock();
+        }
+      }
     });
 
-    document.addEventListener("mouseup", () => {
+    document.addEventListener("mouseup", (event: MouseEvent) => {
       this.activeControls.set("mouseclick" as Control, false);
     });
 
@@ -42,6 +59,20 @@ export class Controller {
     document.addEventListener("keyup", (event: KeyboardEvent) => {
       this.activeControls.set(event.key.toLowerCase() as Control, false);
     });
+
+    document.addEventListener("pointerlockchange", () => {
+      if (!document.pointerLockElement) {
+        this.lockWaitPromise = new Promise((resolve) => {
+          setTimeout(() => {
+            delete this.lockWaitPromise;
+            this.alreadyAwaiting = false;
+
+            resolve();
+
+          }, 1300);
+        });
+      }
+    });
   }
 
   public get aimMovement(): [number, number] {
@@ -51,15 +82,15 @@ export class Controller {
     this.xMovement = 0;
     this.yMovement = 0;
 
-    return [totalX, totalY]
+    return [-totalX * this.MOUSE_SENSITIVITY, totalY * this.MOUSE_SENSITIVITY];
   }
 
   public get scrollMovement(): number {
     const movement: number = this._scrollMovement;
 
     this._scrollMovement = 0;
-
-    return movement;
+    
+    return movement * this.SCROLL_SENSITIVITY;
   }
 
   public controlActive(control: Control): boolean {
@@ -67,10 +98,14 @@ export class Controller {
   }
 
   public lockMouse(): void {
+    this.mouseLocked = true;
+
     document.body.requestPointerLock();
   }
 
   public unlockMouse(): void {
+    this.mouseLocked = false;
+
     document.exitPointerLock();
   }
 }

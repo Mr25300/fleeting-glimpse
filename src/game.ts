@@ -1,22 +1,19 @@
-import { BVH, RaycastInfo } from "./bvh.js";
+import { BVH } from "./collisions/bvh.js";
 import { Camera } from "./camera.js";
 import { Canvas } from "./canvas.js";
-import { Bounds, Capsule, Ray, Triangle } from "./collisions.js";
-import { Control, Controller } from "./controller.js";
-import { Entity } from "./entity.js";
-import { Matrix4 } from "./matrix4.js";
-import { GameMesh, GameModel, MeshLoader, RenderMesh, RenderModel } from "./mesh.js";
-import { Player } from "./player.js";
+import { Controller } from "./controller.js";
+import { GameModel, MeshLoader, RenderModel } from "./mesh.js";
+import { Player } from "./entity/player.js";
 import { AudioEmission, AudioManager } from "./audiomanager.js";
 import { Vector3 } from "./vector3.js";
 import { GameEvent } from "./gameevent.js";
 import { UIManager } from "./uimanager.js";
-import { Monster } from "./monster.js";
+import { Monster } from "./entity/monster.js";
 
 /** Handle game loop */
 export abstract class Gameloop {
   private _running: boolean = false;
-  private lastTime: number;
+  private lastTime?: number;
   private _elapsedTime: number = 0;
   private _fps: number;
 
@@ -44,7 +41,6 @@ export abstract class Gameloop {
 
     // Call update and render functions
     this.update(deltaTime);
-    this.render();
 
     requestAnimationFrame((timestamp: number) => {
       this.loop(timestamp);
@@ -65,10 +61,12 @@ export abstract class Gameloop {
 
   protected stopLoop(): void {
     this._running = false;
+    
+    delete this.lastTime;
+    this._elapsedTime = 0;
   }
 
   protected abstract update(deltaTime: number): void;
-  protected abstract render(): void;
 }
 
 export class Game extends Gameloop {
@@ -84,10 +82,14 @@ export class Game extends Gameloop {
   public readonly uiManager: UIManager = new UIManager();
   public readonly controller: Controller = new Controller();
   public readonly bvh: BVH = new BVH();
+
+  private _player: Player;
+  private _monster: Monster;
   
   private monsterModel: RenderModel;
   private ambienceSound: AudioEmission;
-  private entities: Set<Entity> = new Set();
+
+  private ended: boolean = false;
 
   public static get instance(): Game {
     if (!Game._instance) Game._instance = new Game();
@@ -95,22 +97,27 @@ export class Game extends Gameloop {
     return Game._instance;
   }
 
-  public async init(): Promise<void> {
-    const canvasPromise: Promise<void> = this.canvas.init();
-    const interactPromise: Promise<void> = this.uiManager.awaitUserInteract();
+  public get player(): Player {
+    return this._player;
+  }
 
-    canvasPromise.then(() => {
+  public get monster(): Monster {
+    return this._monster;
+  }
+
+  public async init(): Promise<void> {
+    const canvasMeshPromise: Promise<void> = this.canvas.init().then(() => {
       this.meshLoader.init();
     });
 
-    interactPromise.then(() => {
-      this.audioManager.start();
-    });
-
-    await Promise.all([
-      canvasPromise,
+    const loadPromise: Promise<void[]> = Promise.all([
+      canvasMeshPromise,
       this.audioManager.init(),
     ]);
+
+    await this.uiManager.handleLoadingScreen(loadPromise);
+
+    this.audioManager.start();
 
     const mapRender: RenderModel = this.meshLoader.createRenderModel("map");
     const mapModel: GameModel = this.meshLoader.createGameModel("map");
@@ -122,61 +129,69 @@ export class Game extends Gameloop {
     this.canvas.registerModel(mapRender);
     this.canvas.registerModel(this.monsterModel);
 
-    await interactPromise;
-
-    this.uiManager.promptMenu();
+    this.start();
   }
 
-  public start(): void {
-    const player: Player = new Player();
-    const monster: Monster = new Monster(this.monsterModel, player);
-    
-    this.entities.add(player);
-    this.entities.add(monster);
+  public async start(): Promise<void> {
+    await this.uiManager.menuPrompt();
 
-    this.camera.subject = player;
+    this.ended = false;
+    this.canvas.endScreenActive = false;
+
+    this._player = new Player();
+    this._monster = new Monster(this.monsterModel, this._player);
+
+    this.camera.subject = this._player;
     this.camera.subjectOffset = new Vector3(0, 1.5, 0);
 
     this.ambienceSound = this.audioManager.get("ambience").emit(true);
-
-    this.controller.lockMouse();
 
     this.startLoop();
   }
 
   protected update(deltaTime: number): void {
-    this.firstStep.fire(deltaTime);
+    if (!this.ended) {
+      this.firstStep.fire(deltaTime);
 
-    const [xMovement, yMovement]: [number, number] = this.controller.aimMovement;
-    this.camera.rotate(-xMovement / 200, yMovement / 200);
+      const [xMovement, yMovement]: [number, number] = this.controller.aimMovement;
+      this.camera.rotate(xMovement, yMovement);
+  
+      this._player.prePhysicsBehaviour(deltaTime);
+      this._monster.prePhysicsBehaviour();
+  
+      this._player.updatePhysics(deltaTime);
+      this._monster.updatePhysics(deltaTime);
+  
+      this.camera.update(deltaTime);
+  
+      this._player.postPhysicsBehaviour();
+      this._monster.postPhysicsBehaviour(deltaTime);
+  
+      this.lastStep.fire(deltaTime);
 
-    for (const entity of this.entities) {
-      entity.prePhysicsBehaviour(deltaTime);
+      this.uiManager.updateGameInfo();
     }
 
-    for (const entity of this.entities) {
-      entity.updatePhysics(deltaTime);
-    }
-
-    this.camera.update(deltaTime);
-
-    for (const entity of this.entities) {
-      entity.postPhysicsBehaviour(deltaTime);
-    }
-
-    this.lastStep.fire(deltaTime);
+    this.canvas.render();
   }
 
-  public end(): void {
+  public async end(): Promise<void> {
+    this.ended = true;
+    this.canvas.endScreenActive = true;
+    this.canvas.reset();
+    this.camera.reset();
+
+    this._player.destroy();
+    this._monster.destroy();
+
     this.controller.unlockMouse();
 
-    this.ambienceSound.stop();
+    if (this.ambienceSound) this.ambienceSound.stop();
+
+    await this.uiManager.endScreenPrompt();
 
     this.stopLoop();
-  }
-
-  protected render(): void {
-    this.canvas.render();
+    this.start();
   }
 }
 

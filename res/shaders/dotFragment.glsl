@@ -29,7 +29,7 @@ void main() {
   float angleProgress = abs(normalAngle) / (3.14159 / 2.0);
 
   vec3 dotColor = mix(DOT_COLOR_LIGHT, DOT_COLOR_DARK, angleProgress);
-  float noiseScalar = 0.25 + 0.75 * staticNoise(vec3(gl_FragCoord.xy, time * 5.0) / 2.0);
+  float noiseScalar = staticNoise(vec3(gl_FragCoord.xy / 10.0, time));
 
   fragColor = vec4(dotColor * fragFadeScale * noiseScalar, 1.0);
 }

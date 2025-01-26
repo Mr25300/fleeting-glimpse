@@ -1,4 +1,4 @@
-import { Triangle } from "./collisions.js";
+import { Triangle } from "./collisions/collisions.js";
 import { Game } from "./game.js";
 import { Matrix4 } from "./matrix4.js";
 import { Util } from "./util.js";

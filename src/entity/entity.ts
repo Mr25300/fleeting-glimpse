@@ -1,7 +1,7 @@
-import { Capsule } from "./collisions.js";
-import { Game } from "./game.js";
-import { Matrix4 } from "./matrix4.js";
-import { Vector3 } from "./vector3.js";
+import { Capsule } from "../collisions/collisions.js";
+import { Game } from "../game.js";
+import { Matrix4 } from "../matrix4.js";
+import { Vector3 } from "../vector3.js";
 
 export abstract class Entity {
   private GRAV_ACCEL: number = 100;
@@ -41,6 +41,10 @@ export abstract class Entity {
 
     this._faceMatrix = Matrix4.fromLookVector(new Vector3(this._aimDirection.x, 0, this._aimDirection.z).unit);
   }
+  
+  public get moveSpeed(): number {
+    return this._moveSpeed;
+  }
 
   public set moveSpeed(speed: number) {
     this._moveSpeed = Math.max(0, speed);
@@ -53,9 +57,6 @@ export abstract class Entity {
   public impulseUp(magnitude: number): void {
     this.fallSpeed -= magnitude;
   }
-
-  public abstract prePhysicsBehaviour(deltaTime: number): void;
-  public abstract postPhysicsBehaviour(deltaTime: number): void;
 
   private handleCollisions(vertical: boolean): [boolean, Vector3] {
     this.hitbox.setTransformation(Matrix4.fromPosition(this._position).multiply(this._faceMatrix));
@@ -120,7 +121,7 @@ export abstract class Entity {
 
     const moveDisplacement: Vector3 = this._moveDirection.multiply(this._moveSpeed * deltaTime);
     this._position = this._position.add(moveDisplacement);
-
+    
     this.handleCollisions(false);
   }
 }

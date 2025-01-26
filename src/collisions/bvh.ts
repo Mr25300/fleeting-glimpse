@@ -1,6 +1,6 @@
-import { Bounds, Capsule, Ray, Triangle } from "./collisions.js";
-import { GameModel } from "./mesh.js";
-import { Vector3 } from "./vector3.js";
+import { Bounds, Triangle, Ray, Capsule } from "./collisions.js";
+import { GameModel } from "../mesh.js";
+import { Vector3 } from "../vector3.js";
 
 export interface RaycastInfo {
   t: number,

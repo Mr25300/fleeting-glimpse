@@ -1,6 +1,8 @@
 * {
   padding: 0;
   margin: 0;
+  font-family: 'Courier New', Courier, monospace;
+  user-select: none;
 }
 
 .full-screen {
@@ -12,13 +14,6 @@
   overflow: hidden;
 }
 
-.menu-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: black;
-}
-
 .container-group {
   display: flex;
   flex-direction: column;
@@ -26,38 +21,63 @@
   justify-content: center;
 }
 
+#main-menu {
+  background-color: black;
+}
+
+#main-menu, #end-screen {
+  z-index: 1;
+}
+
+#loading-screen {
+  background-color: black;
+  color: gainsboro;
+}
+
+.screen-transition {
+  z-index: 2;
+  background-color: black;
+  transition-property: opacity;
+  pointer-events: none;
+}
+
+.screen-transition.covering {
+  pointer-events: all;
+}
+
 .element-wrapper {
   text-align: center;
 }
 
-@keyframes title-animation {
-  0% { filter: brightness(1) hue-rotate(0deg); }
-  25% { filter: brightness(0) hue-rotate(0deg); }
-  26% { filter: brightness(0) hue-rotate(190deg); }
-  50% { filter: brightness(1) hue-rotate(190deg); }
-  75% { filter: brightness(0) hue-rotate(190deg); }
-  76% { filter: brightness(0) hue-rotate(0deg); }
-  100% { filter: brightness(1) hue-rotate(0deg); }
-}
-
 .title-img {
   max-width: 100%;
-  max-height: 60vh;
   object-fit: contain;
-  background: none;
+}
+
+@keyframes title-animation {
+  0% { filter: opacity(1) hue-rotate(0deg); }
+  25% { filter: opacity(0) hue-rotate(0deg); }
+  26% { filter: opacity(0) hue-rotate(180deg); }
+  50% { filter: opacity(1) hue-rotate(180deg); }
+  75% { filter: opacity(0) hue-rotate(180deg); }
+  76% { filter: opacity(0) hue-rotate(0deg); }
+  100% { filter: opacity(1) hue-rotate(0deg); }
+}
+
+.menu-title-img {
+  max-height: 60vh;
   animation: title-animation 8s ease-in-out infinite;
 }
 
-.title-img.hide {
-  transition: filter 2s ease-out;
-  filter: brightness(0);
+.end-title-img {
+  max-height: 70vh;
 }
 
 .play-button {
   background: none;
   outline: none;
   border: none;
-  height: 10vh;
+  height: 20vh;
   transition: transform 0.2s ease-out;
 }
 
@@ -71,11 +91,89 @@
   transition: filter 0.2s ease-out;
 }
 
-.play-button.clicked img {
-  filter: brightness(0);
+.play-button.clicked {
+  cursor: default;
 }
 
-canvas {
+.play-button.clicked img {
+  filter: opacity(0);
+}
+
+#game-screen {
   width: 100%;
   height: 100%;
+  z-index: 0;
+}
+
+.game-info-container {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.game-info-container.hidden {
+  display: none;
+}
+
+.progress-bar {
+  position: relative;
+  width: 400px;
+  height: 20px;
+}
+
+.progress-bar span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  color: black;
+  text-align: center;
+}
+
+.progress-bar progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  appearance: none;
+}
+
+.progress-bar progress::-webkit-progress-bar {
+  border-radius: 5px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: gainsboro;
+}
+
+.progress-bar.stamina progress::-webkit-progress-value {
+  background-color: aquamarine;
+}
+
+.progress-bar.stamina progress::-moz-progress-bar {
+  background-color: aquamarine;
+}
+
+.progress-bar.scan progress::-webkit-progress-value {
+  background-color: lightgreen;
+}
+
+.progress-bar.scan progress::-moz-progress-bar {
+  background-color: lightgreen;
+}
+
+.progress-bar.fear progress::-webkit-progress-value {
+  background-color: coral;
+}
+
+.progress-bar.fear progress::-moz-progress-bar {
+  background-color: coral;
 }

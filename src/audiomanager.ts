@@ -1,9 +1,9 @@
-import { Entity } from "./entity.js";
+import { Entity } from "./entity/entity.js";
 import { Game } from "./game.js";
 import { EventConnection } from "./gameevent.js";
 import { Util } from "./util.js";
 
-type AudioName = "menu" | "click" | "ambience" | "footstep" | "scanning" | "heartbeat" | "aggression";
+type AudioName = "menu" | "click" | "ambience" | "footstep" | "scanning" | "heartbeat" | "aggression" | "static";
 
 interface AudioInfo {
   name: AudioName,
@@ -17,11 +17,12 @@ export class AudioManager {
   private AUDIO_INFO: AudioInfo[] = [
     { name: "menu", volume: 1, looped: true },
     { name: "click", volume: 1, looped: false },
-    { name: "ambience", volume: 1, looped: true },
-    { name: "footstep", volume: 4, looped: false, frequency: 0.8 },
-    { name: "scanning", volume: 1, looped: true },
-    { name: "heartbeat", volume: 1, looped: false, frequency: 1.5 },
-    { name: "aggression", volume: 1.5, looped: false, range: 20 }
+    { name: "ambience", volume: 0.5, looped: true },
+    { name: "footstep", volume: 3.5, looped: false, frequency: 0.8 },
+    { name: "scanning", volume: 1.2, looped: true },
+    { name: "heartbeat", volume: 0.8, looped: false, frequency: 1.5 },
+    { name: "aggression", volume: 4, looped: false, range: 100 },
+    { name: "static", volume: 1.5, looped: true }
   ]
 
   private context: AudioContext = new AudioContext();
@@ -84,7 +85,6 @@ export class AudioEffect {
 
   public emit(autoPlay?: boolean): AudioEmission {
     const gainNode: GainNode = this.context.createGain();
-    gainNode.gain.value = 1;
     gainNode.connect(this.defaultGain);
 
     const source: AudioBufferSourceNode = this.context.createBufferSource();
@@ -97,10 +97,12 @@ export class AudioEffect {
 }
 
 export class AudioEmitter {
+  private volumeScale: number = 1;
   private frequencyScale: number = 1;
 
   private _active: boolean = false;
   private timePassed: number = 0;
+  private timeEnded: number;
   private updateConnection?: EventConnection;
 
   constructor(private audio: AudioEffect, private emitFrequency: number = 1) {}
@@ -109,15 +111,30 @@ export class AudioEmitter {
     return this._active;
   }
 
+  public set volume(scale: number) {
+    this.volumeScale = Math.max(scale, 0);
+  }
+
   public set frequency(scale: number) {
     this.frequencyScale = Math.max(scale, 0);
+  }
+
+  private emitAudio(): void {
+    const emission: AudioEmission = this.audio.emit(true);
+    emission.volume = this.volumeScale;
   }
 
   public start(): void {
     if (this._active) return;
     this._active = true;
 
-    this.audio.emit(true);
+    if (this.timeEnded !== undefined) {
+      this.timePassed += Game.instance.elapsedTime - this.timeEnded;
+
+      if (this.timePassed >= this.emitFrequency) this.timePassed = 0;
+    }
+
+    if (this.timePassed === 0) this.emitAudio();
 
     this.updateConnection = Game.instance.lastStep.connect((deltaTime: number) => {
       this.update(deltaTime)
@@ -127,15 +144,17 @@ export class AudioEmitter {
   private update(deltaTime: number): void {
     this.timePassed += deltaTime * this.frequencyScale;
 
-    while (this.timePassed > this.emitFrequency) {
+    while (this.timePassed >= this.emitFrequency) {
       this.timePassed -= this.emitFrequency;
-      this.audio.emit(true);
+      this.emitAudio();
     }
   }
 
   public stop(): void {
     if (!this._active) return;
     this._active = false;
+
+    this.timeEnded = Game.instance.elapsedTime;
 
     if (this.updateConnection) this.updateConnection.disconnect();
     delete this.updateConnection;
