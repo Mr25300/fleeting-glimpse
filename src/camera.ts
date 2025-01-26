@@ -48,7 +48,7 @@ export class Camera {
     this.yaw = (this.yaw + yaw) % (2 * Math.PI);
     this.pitch = Math.min(Math.max(this.pitch + pitch, -Math.PI / 2), Math.PI / 2);
 
-    this._rotation = Matrix4.fromRotation(this.yaw, this.pitch, this.roll);
+    this._rotation = Matrix4.fromEulerAngles(this.pitch, this.yaw, this.roll);
   }
 
   public update(deltaTime: number): void {

@@ -31,7 +31,7 @@ export class Matrix4 {
     );
   }
 
-  public static fromRotationX(rotX: number): Matrix4 {
+  public static fromEulerAngleX(rotX: number): Matrix4 {
     const cos: number = Math.cos(rotX);
     const sin: number = Math.sin(rotX);
 
@@ -43,7 +43,7 @@ export class Matrix4 {
     );
   }
 
-  public static fromRotationY(rotY: number): Matrix4 {
+  public static fromEurlerAngleY(rotY: number): Matrix4 {
     const cos: number = Math.cos(rotY);
     const sin: number = Math.sin(rotY);
 
@@ -55,7 +55,7 @@ export class Matrix4 {
     );
   }
 
-  public static fromRotationZ(rotZ: number): Matrix4 {
+  public static fromEulerAngleZ(rotZ: number): Matrix4 {
     const cos: number = Math.cos(rotZ);
     const sin: number = Math.sin(rotZ);
 
@@ -67,10 +67,17 @@ export class Matrix4 {
     );
   }
 
-  public static fromRotation(yaw: number, pitch: number, roll: number): Matrix4 {
-    const matrixX: Matrix4 = this.fromRotationX(pitch);
-    const matrixY: Matrix4 = this.fromRotationY(yaw);
-    const matrixZ: Matrix4 = this.fromRotationZ(roll);
+  /**
+   * 
+   * @param x Yaw.
+   * @param y Pitch.
+   * @param z Roll.
+   * @returns 
+   */
+  public static fromEulerAngles(x: number, y: number, z: number): Matrix4 {
+    const matrixX: Matrix4 = this.fromEulerAngleX(x);
+    const matrixY: Matrix4 = this.fromEurlerAngleY(y);
+    const matrixZ: Matrix4 = this.fromEulerAngleZ(z);
 
     return matrixY.multiply(matrixX).multiply(matrixZ);
   }
