@@ -27,7 +27,7 @@ export class MeshLoader {
   private readonly meshes: Map<MeshName, MeshResult> = new Map();
 
   /** Initialize and load all default meshes. */
-  public async init() {
+  public async init(): Promise<void> {
     const promises: Promise<MeshResult>[] = [];
 
     // Create all mesh load promises
@@ -154,11 +154,11 @@ export class GameModel {
   constructor(private mesh: GameMesh, private _transformation: Matrix4 = Matrix4.identity) {
     this.vertices = new Array(this.mesh.vertices.length);
     this.triangles = new Array(this.mesh.triangles.length);
-    this.updateVertexTransforms();
+    this.updateTransform();
   }
 
   /** Updates the vertices and triangles of the model using the current transformation. */
-  private updateVertexTransforms(): void {
+  private updateTransform(): void {
     // Update the vertex positions based on the transformation
     for (let i = 0; i < this.vertices.length; i++) {
       this.vertices[i] = this._transformation.apply(this.mesh.vertices[i]);
@@ -182,7 +182,7 @@ export class GameModel {
    */
   public set transformation(transform: Matrix4) {
     this._transformation = transform;
-    this.updateVertexTransforms();
+    this.updateTransform();
   }
 }
 

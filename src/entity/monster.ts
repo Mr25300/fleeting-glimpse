@@ -31,7 +31,7 @@ export class Monster extends Entity {
 
   constructor(private model: RenderModel, private target: Player) {
     super(
-      new Vector3(-69, 0, -45),
+      new Vector3(-70, 0, -60),
       new Capsule(
         new Vector3(0, -2, 0),
         new Vector3(0, 6.9, 0),

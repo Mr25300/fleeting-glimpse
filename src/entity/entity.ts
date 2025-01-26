@@ -72,7 +72,7 @@ export abstract class Entity {
    * - The total collision correction.
    */
   private handleCollisions(vertical: boolean): [boolean, Vector3] {
-    this.hitbox.setTransformation(Matrix4.fromPosition(this._position).multiply(this._faceMatrix));
+    this.hitbox.transformation = Matrix4.fromPosition(this._position).multiply(this._faceMatrix);
 
     const corrections: Vector3[] = [];
 

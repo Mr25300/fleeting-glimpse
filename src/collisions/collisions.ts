@@ -51,8 +51,8 @@ export class Line {
 
 /** Represents a triangle in 3d space. */
 export class Triangle {
-  public readonly centroid: Vector3;
   public readonly bounds: Bounds;
+  public readonly centroid: Vector3;
   public readonly edge1: Vector3;
   public readonly edge2: Vector3;
   public readonly edgeCross: Vector3;
@@ -71,8 +71,8 @@ export class Triangle {
     public readonly v1: Vector3,
     public readonly v2: Vector3
   ) {
-    this.centroid = v0.add(v1).add(v2).divide(3); // The average of the three vertices
     this.bounds = Bounds.fromPoints([v0, v1, v2]);
+    this.centroid = v0.add(v1).add(v2).divide(3); // The average of the three vertices
 
     // Assign the edges and normals for 
     this.edge1 = this.v1.subtract(this.v0);
@@ -237,13 +237,13 @@ export class Capsule {
    * @param start The starting point of the capsule.
    * @param end The ending point of the capsule.
    * @param radius The capsule radius.
-   * @param transformation The start transformation, defaults to nothing.
+   * @param _transformation The start transformation, defaults to nothing.
    */
   constructor(
     private readonly start: Vector3,
     private readonly end: Vector3,
     private readonly radius: number,
-    private transformation: Matrix4 = Matrix4.identity
+    private _transformation: Matrix4 = Matrix4.identity
   ) {
     this.updateTransform();
   }
@@ -254,8 +254,8 @@ export class Capsule {
 
   /** Updates the transform and bounds of the capsule. */
   private updateTransform(): void {
-    this.tStart = this.transformation.apply(this.start);
-    this.tEnd = this.transformation.apply(this.end);
+    this.tStart = this._transformation.apply(this.start);
+    this.tEnd = this._transformation.apply(this.end);
     this.line = new Line(this.tStart, this.tEnd);
     this._bounds = Bounds.fromPoints([this.tStart, this.tEnd], this.radius);
   }
@@ -264,9 +264,8 @@ export class Capsule {
    * Sets and updates the transformation of the capsule.
    * @param transformation The new transformation.
    */
-  public setTransformation(transformation: Matrix4): void {
-    this.transformation = transformation;
-
+  public set transformation(transformation: Matrix4) {
+    this._transformation = transformation;
     this.updateTransform();
   }
 

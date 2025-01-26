@@ -8,7 +8,7 @@ import { Game } from "../core/game.js";
 export class Camera {
   private readonly MIN_FOV: number = 1;
   private readonly MAX_FOV: number = 140;
-  private readonly FOV_SPEED_FACTOR = 2;
+  private readonly FOV_TRANSITION_SPEED = 2;
 
   private readonly Z_NEAR: number = 0.01;
   private readonly Z_FAR: number = 10000;
@@ -70,7 +70,7 @@ export class Camera {
       this._position = this.subject.position.add(this.subjectOffset);
     }
 
-    this.currentFov = this.goalFov + (this.currentFov - this.goalFov) * Math.exp(-this.FOV_SPEED_FACTOR * deltaTime);
+    this.currentFov = this.goalFov + (this.currentFov - this.goalFov) * Math.exp(-deltaTime * this.FOV_TRANSITION_SPEED);
   }
 
   /** Reset the camera's fov and rotation properties. */
