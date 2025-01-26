@@ -76,7 +76,7 @@ export class UIManager {
 
     clearInterval(interval);
 
-    text.innerText = "Click anywhere to continue.";
+    text.innerText = "Click anywhere to begin.";
 
     await this.awaitUserInteract();
     await this.screenTransition(true, 0.5);

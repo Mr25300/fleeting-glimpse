@@ -117,8 +117,6 @@ export class Game extends Gameloop {
 
     await this.uiManager.handleLoadingScreen(loadPromise);
 
-    this.audioManager.start();
-
     const mapRender: RenderModel = this.meshLoader.createRenderModel("map");
     const mapModel: GameModel = this.meshLoader.createGameModel("map");
 

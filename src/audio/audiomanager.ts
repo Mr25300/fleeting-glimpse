@@ -43,10 +43,6 @@ export class AudioManager {
     }
   }
 
-  public start(): void {
-    this.context.resume();
-  }
-
   private async loadAudio(info: AudioInfo): Promise<AudioEffect> {
     const path: string = `res/audio/${info.name}.mp3`;
     const arrayBuffer: ArrayBuffer = await (await Util.loadFile(path)).arrayBuffer();
