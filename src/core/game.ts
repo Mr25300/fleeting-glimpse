@@ -9,65 +9,7 @@ import { Vector3 } from "../math/vector3.js";
 import { GameEvent } from "../util/gameevent.js";
 import { UIManager } from "../interfacing/uimanager.js";
 import { Monster } from "../entity/monster.js";
-
-/** Handle game loop */
-export abstract class Gameloop {
-  private _running: boolean = false;
-  private lastTime?: number;
-  private _elapsedTime: number = 0;
-  private _fps: number;
-
-  protected startLoop(): void {
-    this._running = true;
-
-    requestAnimationFrame((timestamp: number) => {
-      this.loop(timestamp);
-    });
-  }
-
-  /**
-   * Handles the gameloop frame.
-   * @param timestamp The animation frame timestamp in milliseconds.
-   */
-  private loop(timestamp: number): void {
-    if (!this._running) return;
-
-    // Calcualte the change in time from the current and last timestamp
-    const deltaTime: number = this.lastTime !== undefined ? (timestamp - this.lastTime) / 1000 : 0;
-    this.lastTime = timestamp;
-
-    this._elapsedTime += deltaTime;
-    this._fps = 1 / deltaTime;
-
-    // Call update and render functions
-    this.update(deltaTime);
-
-    requestAnimationFrame((timestamp: number) => {
-      this.loop(timestamp);
-    });
-  }
-
-  public get running(): boolean {
-    return this._running;
-  }
-
-  public get elapsedTime(): number {
-    return this._elapsedTime;
-  }
-
-  public get fps(): number {
-    return this._fps;
-  }
-
-  protected stopLoop(): void {
-    this._running = false;
-    
-    delete this.lastTime;
-    this._elapsedTime = 0;
-  }
-
-  protected abstract update(deltaTime: number): void;
-}
+import { Gameloop } from "./gameloop.js";
 
 export class Game extends Gameloop {
   private static _instance: Game;
@@ -106,24 +48,27 @@ export class Game extends Gameloop {
   }
 
   public async init(): Promise<void> {
+    // Load canvas and then the meshes
     const canvasMeshPromise: Promise<void> = this.canvas.init().then(() => {
       this.meshLoader.init();
     });
 
+    // Load canvas, meshes and audio
     const loadPromise: Promise<void[]> = Promise.all([
       canvasMeshPromise,
       this.audioManager.init(),
     ]);
 
-    await this.uiManager.handleLoadingScreen(loadPromise);
+    await this.uiManager.handleLoadingScreen(loadPromise); // Do loading screen animation and await user input
 
-    const mapRender: RenderModel = this.meshLoader.createRenderModel("map");
-    const mapModel: GameModel = this.meshLoader.createGameModel("map");
+    const mapRender: RenderModel = this.meshLoader.createRenderModel("map"); // Create map render model
+    const mapModel: GameModel = this.meshLoader.createGameModel("map"); // Create map game model
 
-    this.monsterModel = this.meshLoader.createRenderModel("monster");
+    this.monsterModel = this.meshLoader.createRenderModel("monster"); // Create monster render model
 
-    this.bvh.init([mapModel]);
+    this.bvh.init([mapModel]); // Initialize bounding volume hierarchy with map triangles
 
+    // Register render models to the canvas for rendering
     this.canvas.registerModel(mapRender);
     this.canvas.registerModel(this.monsterModel);
 
@@ -131,65 +76,75 @@ export class Game extends Gameloop {
   }
 
   public async start(): Promise<void> {
-    await this.uiManager.menuPrompt();
+    await this.uiManager.menuPrompt(); // Prompt menu and wait for user to press play
 
+    // Set ended state properties to false
     this.ended = false;
     this.canvas.endScreenActive = false;
 
+    // Create entities
     this._player = new Player();
     this._monster = new Monster(this.monsterModel, this._player);
 
+    // Set camera subject and offset
     this.camera.subject = this._player;
     this.camera.subjectOffset = new Vector3(0, 1.5, 0);
 
-    this.ambienceSound = this.audioManager.get("ambience").emit(true);
+    this.controller.lockMouse(); // Lock the mouse
+
+    this.ambienceSound = this.audioManager.get("ambience").emit(true); // Play ambience sound
 
     this.startLoop();
   }
 
   protected update(deltaTime: number): void {
-    if (!this.ended) {
-      this.firstStep.fire(deltaTime);
+    if (!this.ended) { // Skip if the game has ended
+      this.firstStep.fire(deltaTime); // Fire first step event for timer delays
 
-      const [xMovement, yMovement]: [number, number] = this.controller.aimMovement;
-      this.camera.rotate(xMovement, yMovement);
-  
+      this.camera.prePhysicsUpdate(); // Update camera rotation
+
+      // Handle player and monster aim/move direction setting and player stamina bar
       this._player.prePhysicsBehaviour(deltaTime);
       this._monster.prePhysicsBehaviour();
-  
+
+      // Handle movement and collisions
       this._player.updatePhysics(deltaTime);
       this._monster.updatePhysics(deltaTime);
-  
-      this.camera.update(deltaTime);
-  
+
+      // Set new camera position and transition fov
+      this.camera.postPhysicsUpdate(deltaTime);
+
+      // Handle player scanning and monster aggression/chasing
       this._player.postPhysicsBehaviour();
       this._monster.postPhysicsBehaviour(deltaTime);
   
-      this.lastStep.fire(deltaTime);
+      this.lastStep.fire(deltaTime); // Fire last step event for audio
 
-      this.uiManager.updateGameInfo();
+      this.uiManager.updateGameInfo(); // Display the new game info
     }
 
     this.canvas.render();
   }
 
   public async end(): Promise<void> {
+    // Set ended state properties to true and reset canvas and camera
     this.ended = true;
     this.canvas.endScreenActive = true;
     this.canvas.reset();
     this.camera.reset();
 
+    // Destroy entities
     this._player.destroy();
     this._monster.destroy();
 
-    this.controller.unlockMouse();
+    this.controller.unlockMouse(); // Unlock mouse
 
     if (this.ambienceSound) this.ambienceSound.stop();
 
-    await this.uiManager.endScreenPrompt();
+    await this.uiManager.endScreenPrompt(); // Prompt end screen and await replay
 
-    this.stopLoop();
-    this.start();
+    this.stopLoop(); // Stop game loop
+    this.start(); // Start game and menu
   }
 }
 

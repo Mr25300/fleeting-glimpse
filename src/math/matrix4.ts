@@ -1,5 +1,6 @@
 import { Vector3 } from "./vector3.js";
 
+/** Represents a 4x4 matrix and handles all relevant constructors and methods. */
 export class Matrix4 {
   private _lookVector?: Vector3;
   private _upVector?: Vector3;
@@ -22,18 +23,28 @@ export class Matrix4 {
     return new Matrix4(matrixArray);
   }
 
-  public static fromScale(scale: Vector3): Matrix4 {
+  /**
+   * Creates a translation matrix from a given vector3 position.
+   * @param position The given position.
+   * @returns The translation matrix.
+   */
+  public static fromPosition(position: Vector3): Matrix4 {
     return Matrix4.create(
-      scale.x, 0, 0, 0,
-      0, scale.y, 0, 0,
-      0, 0, scale.z, 0,
+      1, 0, 0, position.x,
+      0, 1, 0, position.y,
+      0, 0, 1, position.z,
       0, 0, 0, 1
     );
   }
 
-  public static fromEulerAngleX(rotX: number): Matrix4 {
-    const cos: number = Math.cos(rotX);
-    const sin: number = Math.sin(rotX);
+  /**
+   * Creates a rotation matrix around the euler x rotation axis.
+   * @param angle The angle amount to rotate by. 
+   * @returns The rotation matrix.
+   */
+  public static fromEulerAngleX(angle: number): Matrix4 {
+    const cos: number = Math.cos(angle);
+    const sin: number = Math.sin(angle);
 
     return Matrix4.create(
       1, 0, 0, 0,
@@ -43,9 +54,14 @@ export class Matrix4 {
     );
   }
 
-  public static fromEurlerAngleY(rotY: number): Matrix4 {
-    const cos: number = Math.cos(rotY);
-    const sin: number = Math.sin(rotY);
+  /**
+   * Creates a rotation matrix around the euler y rotation axis.
+   * @param angle The angle amount to rotate by. 
+   * @returns The rotation matrix.
+   */
+  public static fromEurlerAngleY(angle: number): Matrix4 {
+    const cos: number = Math.cos(angle);
+    const sin: number = Math.sin(angle);
 
     return Matrix4.create(
       cos, 0, sin, 0,
@@ -55,9 +71,14 @@ export class Matrix4 {
     );
   }
 
-  public static fromEulerAngleZ(rotZ: number): Matrix4 {
-    const cos: number = Math.cos(rotZ);
-    const sin: number = Math.sin(rotZ);
+  /**
+   * Creates a rotation matrix around the euler z rotation axis.
+   * @param angle The angle amount to rotate by. 
+   * @returns The rotation matrix.
+   */
+  public static fromEulerAngleZ(angle: number): Matrix4 {
+    const cos: number = Math.cos(angle);
+    const sin: number = Math.sin(angle);
 
     return Matrix4.create(
       cos, -sin, 0, 0,
@@ -68,11 +89,11 @@ export class Matrix4 {
   }
 
   /**
-   * 
-   * @param x Yaw.
-   * @param y Pitch.
-   * @param z Roll.
-   * @returns 
+   * Creates a rotation matrix from the specified euler angles (in YXZ order).
+   * @param x The x angle (pitch).
+   * @param y The y angle (yaw).
+   * @param z The z angle (roll).
+   * @returns The rotation matrix.
    */
   public static fromEulerAngles(x: number, y: number, z: number): Matrix4 {
     const matrixX: Matrix4 = this.fromEulerAngleX(x);
@@ -82,27 +103,12 @@ export class Matrix4 {
     return matrixY.multiply(matrixX).multiply(matrixZ);
   }
 
-  public static fromPosition(position: Vector3): Matrix4 {
-    return Matrix4.create(
-      1, 0, 0, position.x,
-      0, 1, 0, position.y,
-      0, 0, 1, position.z,
-      0, 0, 0, 1
-    );
-  }
-
-  public static fromPerspective(aspectRatio: number, fov: number, near: number, far: number): Matrix4 {
-    const fovScale: number = 1 / Math.tan(fov / 2 * Math.PI / 180);
-    const clipFactor: number = -far / (far - near);
-
-    return Matrix4.create(
-      fovScale / aspectRatio, 0, 0, 0,
-      0, fovScale, 0, 0,
-      0, 0, clipFactor, clipFactor * near,
-      0, 0, -1, 0
-    );
-  }
-
+  /**
+   * Creates an orthonormal rotation matrix which faces the given look direction.
+   * @param look The look direction.
+   * @param up The specified up direction (optional).
+   * @returns The rotation matrix.
+   */
   public static fromLookVector(look: Vector3, up: Vector3 = Vector3.y): Matrix4 {
     look = look.unit.multiply(-1); // For a right-handed coordinate system
     up = up.unit;
@@ -123,6 +129,12 @@ export class Matrix4 {
     );
   }
 
+  /**
+   * Creates a matrix which rotates any inputted vector by a certain angle around a given axis.
+   * @param axis The specified axis.
+   * @param angle The angle to rotate around the axis.
+   * @returns The axis angle matrix.
+   */
   static fromAxisAngle(axis: Vector3, angle: number): Matrix4 {
     axis = axis.unit;
 
@@ -139,6 +151,30 @@ export class Matrix4 {
     );
   }
 
+  /**
+   * Creates a perspective projection matrix from the specified parameters.
+   * @param aspectRatio The screen aspect ratio.
+   * @param fov The field of view.
+   * @param near The near clipping plane.
+   * @param far The far clipping plane.
+   * @returns The perspective projection matrix.
+   */
+  public static fromPerspective(aspectRatio: number, fov: number, near: number, far: number): Matrix4 {
+    const fovScale: number = 1 / Math.tan(fov / 2 * Math.PI / 180);
+    const clipFactor: number = -far / (far - near);
+
+    return Matrix4.create(
+      fovScale / aspectRatio, 0, 0, 0,
+      0, fovScale, 0, 0,
+      0, 0, clipFactor, clipFactor * near,
+      0, 0, -1, 0
+    );
+  }
+
+  /**
+   * Transposes the current matrix by swapping its rows and columns (inverses the matrix if it is orthonormal).
+   * @returns The transposed matrix.
+   */
   public transpose(): Matrix4 {
     if (!this._transposed) {
       const transposed = new Float32Array(16);
@@ -150,11 +186,17 @@ export class Matrix4 {
       }
 
       this._transposed = new Matrix4(transposed);
+      this._transposed._transposed = this;
     }
 
     return this._transposed;
   }
 
+  /**
+   * Combines this matrix with another.
+   * @param matrix The other matrix.
+   * @returns The product matrix.
+   */
   public multiply(matrix: Matrix4): Matrix4 {
     const newMatrix: Float32Array = new Float32Array(16);
 
@@ -173,6 +215,11 @@ export class Matrix4 {
     return new Matrix4(newMatrix);
   }
 
+  /**
+   * Applies the matrix's transformations to the inputted vector.
+   * @param vector The inputted vector.
+   * @returns The outputted vector.
+   */
   public apply(vector: Vector3): Vector3 {
     const vecValues: Float32Array = new Float32Array([vector.x, vector.y, vector.z, 1]);
     const newValues: Float32Array = new Float32Array(4);
@@ -190,10 +237,12 @@ export class Matrix4 {
     return new Vector3(newValues[0] / newValues[3], newValues[1] / newValues[3], newValues[2] / newValues[3]);
   }
 
+  /** Returns the translation of the matrix in vector3 form. */
   public get position(): Vector3 {
     return new Vector3(this.values[3], this.values[7], this.values[11]);
   }
 
+  /** Returns the matrix's isolated rotation components in matrix form. */
   public get rotation(): Matrix4 {
     return Matrix4.create(
       this.values[0], this.values[1], this.values[2], 0,
@@ -203,24 +252,28 @@ export class Matrix4 {
     );
   }
 
+  /** Returns the look direction of the matrix. */
   public get lookVector(): Vector3 {
     if (!this._lookVector) this._lookVector = new Vector3(-this.values[2], -this.values[6], -this.values[10])
 
     return this._lookVector;
   }
 
+  /** Returns the up direction of the matrix. */
   public get upVector(): Vector3 {
     if (!this._upVector) this._upVector = new Vector3(this.values[1], this.values[5], this.values[9]);
 
     return this._upVector;
   }
-  
+
+  /** Returns the right direction of the matrix. */
   public get rightVector(): Vector3 {
     if (!this._rightVector) this._rightVector = new Vector3(this.values[0], this.values[4], this.values[8]);
 
     return this._rightVector;
   }
 
+  /** Formats a matrix for webgl by transposing it and returning its values. */
   public glFormat(): Float32Array {
     return this.transpose().values;
   }

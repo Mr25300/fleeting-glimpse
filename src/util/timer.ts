@@ -29,30 +29,20 @@ export class Timer {
     return connection;
   }
 
-  /**
-   * Starts the timer.
-   * @param key The optional timer key.
-   */
+  /** Starts the timer. */
   public start(): void {
     this.startTime = Game.instance.elapsedTime;
   }
 
-  /**
-   * Stops and clears the timer.
-   * @param key The optional key.
-   */
+  /** Stops and clears the timer. */
   public stop(): void {
     delete this.startTime;
   }
 
-  /**
-   * Checks whether or not the timer is active.
-   * @param key The optional key.
-   * @returns True if active, false if not.
-   */
+  /** Returns whether or not the timer is active. */
   public get active(): boolean {
     if (this.startTime === undefined) return false;
 
-    return (Game.instance.elapsedTime - this.startTime) < this.duration;
+    return Game.instance.elapsedTime - this.startTime < this.duration;
   }
 }

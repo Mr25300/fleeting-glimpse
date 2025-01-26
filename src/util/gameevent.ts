@@ -2,13 +2,12 @@ type EventHandler = (...args: any) => void;
 
 /** Handles connection handlers to events and firing. */
 export class GameEvent {
-  /** A map of handlers connected to the event for different keys. */
+  /** A map of handlers connected to the event. */
   private handlers: Set<EventHandler> = new Set();
 
   /**
-   * Connects the handler to an event with an optional key.
+   * Connects the handler to an event.
    * @param handler The handler function.
-   * @param key The event key.
    * @returns The event connection.
    */
   public connect(handler: EventHandler): EventConnection {
@@ -18,9 +17,8 @@ export class GameEvent {
   }
 
   /**
-   * Connects the handler to an event with an optional key so that it disconnects automatically after being fired.
+   * Connects the handler to an event with so that it disconnects automatically after being fired.
    * @param handler The handler function.
-   * @param key The event key.
    * @returns The event connection.
    */
   public connectOnce(handler: EventHandler): EventConnection {
@@ -34,18 +32,16 @@ export class GameEvent {
   }
 
   /**
-   * Disconnects an existing handler and its key from the event.
+   * Disconnects an existing handler from the event.
    * @param handler The handler function.
-   * @param key The event key.
    */
   public disconnect(handler: EventHandler): void {
     this.handlers.delete(handler);
   }
 
   /**
-   * Checks whether or not a handler and its key are connected to the event.
+   * Checks whether or not a handler is connected to the event.
    * @param handler The handler function.
-   * @param key The event key.
    * @returns True if connected, false if not.
    */
   public isConnected(handler: EventHandler): boolean {
@@ -53,8 +49,7 @@ export class GameEvent {
   }
 
   /**
-   * Fires the event with a key, calling all connected handlers for that key.
-   * @param key The event key.
+   * Fires the event, calling all connected handlers with the inputted arguments.
    * @param args The arguments to pass to the handlers.
    */
   public fire(...args: any): void {
@@ -70,6 +65,7 @@ export class EventConnection {
   
   constructor(private event: GameEvent, private handler: EventHandler) {}
 
+  /** Returns whether or not the connection is still connected to the event. */
   public get active(): boolean {
     if (this._active && !this.event.isConnected(this.handler)) {
       this._active = false;
@@ -78,7 +74,7 @@ export class EventConnection {
     return this._active;
   }
   
-  /** Disconnects the connection"s handler from the associated event. */
+  /** Disconnects the connection's handler from the associated event. */
   public disconnect(): void {
     if (!this._active) return;
     this._active = false;

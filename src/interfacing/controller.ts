@@ -8,6 +8,7 @@ export enum Control {
   scan = "mouseclick"
 }
 
+/** Handles user input and controls. */
 export class Controller {
   private readonly MOUSE_SENSITIVITY: number = 1 / 200;
   private readonly SCROLL_SENSITIVITY: number = Math.PI / 180 / 50;
@@ -20,6 +21,7 @@ export class Controller {
   private yMovement: number = 0;
   private _scrollMovement: number = 0;
 
+  /** A map of currently held down controls. */
   private activeControls: Map<Control, boolean> = new Map();
 
   constructor() {
@@ -36,15 +38,7 @@ export class Controller {
       this.activeControls.set("mouseclick" as Control, true);
 
       if (this.mouseLocked && !document.pointerLockElement) {
-        if (this.lockWaitPromise) {
-          if (!this.alreadyAwaiting) {
-            this.alreadyAwaiting = true;
-            this.lockWaitPromise.then(() => document.body.requestPointerLock())
-          }
-
-        } else {
-          document.body.requestPointerLock();
-        }
+        this.handleMouseLockRequest();
       }
     });
 
@@ -62,6 +56,7 @@ export class Controller {
 
     document.addEventListener("pointerlockchange", () => {
       if (!document.pointerLockElement) {
+        // Create promise to prevent pointer lock during cooldown
         this.lockWaitPromise = new Promise((resolve) => {
           setTimeout(() => {
             delete this.lockWaitPromise;
@@ -75,34 +70,57 @@ export class Controller {
     });
   }
 
+  /** Handles mouse lock, awaiting the pointer lock cooldown if active. */
+  private handleMouseLockRequest(): void {
+    if (this.lockWaitPromise) {
+      if (!this.alreadyAwaiting) {
+        this.alreadyAwaiting = true;
+        this.lockWaitPromise.then(() => document.body.requestPointerLock())
+      }
+
+    } else {
+      document.body.requestPointerLock();
+    }
+  }
+
+  /** Returns the x and y aim delta based on the user's mouse movement since the last call. */
   public get aimMovement(): [number, number] {
     const totalX: number = this.xMovement;
     const totalY: number = this.yMovement;
 
+    // Reset movement for next frame
     this.xMovement = 0;
     this.yMovement = 0;
 
     return [-totalX * this.MOUSE_SENSITIVITY, totalY * this.MOUSE_SENSITIVITY];
   }
 
+  /** Returns the user's mouse scroll movement since the last call. */
   public get scrollMovement(): number {
     const movement: number = this._scrollMovement;
 
-    this._scrollMovement = 0;
+    this._scrollMovement = 0; // Reset movement for next frame
     
     return movement * this.SCROLL_SENSITIVITY;
   }
 
+  /**
+   * Determines whether or not a specified control is currently held down.
+   * @param control The specified control.
+   * @returns True if being held down, false if otherwise.
+   */
   public controlActive(control: Control): boolean {
     return this.activeControls.get(control) === true;
   }
 
+  /** Lock and hide the mouse. */
   public lockMouse(): void {
     this.mouseLocked = true;
 
-    document.body.requestPointerLock();
+    this.handleMouseLockRequest();
   }
 
+  /** Unlock and show the mouse. */
   public unlockMouse(): void {
     this.mouseLocked = false;
 

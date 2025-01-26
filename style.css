@@ -38,11 +38,6 @@
   z-index: 2;
   background-color: black;
   transition-property: opacity;
-  pointer-events: none;
-}
-
-.screen-transition.covering {
-  pointer-events: all;
 }
 
 .element-wrapper {

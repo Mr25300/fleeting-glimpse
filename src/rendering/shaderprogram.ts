@@ -98,7 +98,7 @@ export class ShaderProgram {
    * @param stride The byte offset between vertices.
    * @param offset The initial byte offset.
    */
-  public setAttribBuffer(name: string, buffer: WebGLBuffer, size: GLint, stride: GLint, offset: GLint, divisor?: number): void {
+  public setAttribBuffer(name: string, buffer: WebGLBuffer, size: GLint, stride: GLint = 0, offset: GLint = 0, divisor?: number): void {
     // Get attribute location
     const location: number | undefined = this.attribLocations.get(name);
     if (location === undefined) throw new Error(`Attrib "${name}" does not exist.`);
@@ -110,11 +110,10 @@ export class ShaderProgram {
       stride * Float32Array.BYTES_PER_ELEMENT,
       offset * Float32Array.BYTES_PER_ELEMENT
     );
+
     this.gl.enableVertexAttribArray(location);
 
-    if (divisor !== undefined) {
-      this.gl.vertexAttribDivisor(location, divisor);
-    }
+    if (divisor !== undefined) this.gl.vertexAttribDivisor(location, divisor);
   }
 
   /**
@@ -143,16 +142,16 @@ export class ShaderProgram {
   }
 
   /**
-   * Set the value of a uniform float 3 matrix.
+   * Sets a uniform float 4 matrix.
    * @param name The uniform name.
    * @param matrix The matrix.
    */
-  public setUniformMatrix(name: string, matrix: Matrix4): void { // make it take in matrix4 class
+  public setUniformMatrix(name: string, matrix: Matrix4): void {
     this.gl.uniformMatrix4fv(this.getUniformLocation(name), false, matrix.glFormat());
   }
 
   /**
-   * Sets the uniform float 2 vector to a vector.
+   * Sets a uniform float 3 vector.
    * @param name The uniform name.
    * @param vector The vector value.
    */
@@ -160,20 +159,21 @@ export class ShaderProgram {
     this.gl.uniform3fv(this.getUniformLocation(name), new Float32Array([vector.x, vector.y, vector.z]));
   }
 
+  /**
+   * Sets a float uniform.
+   * @param name The uniform name.
+   * @param value The float value.
+   */
   public setUniformFloat(name: string, value: number): void {
     this.gl.uniform1f(this.getUniformLocation(name), value);
   }
 
-  /**
-   * Activate the program.
-   */
+  /** Activate the program. */
   public use(): void {
     this.gl.useProgram(this.program);
   }
 
-  /**
-   * Destroy the program and its shaders.
-   */
+  /** Destroy the program and its shaders. */
   public destroy(): void {
     this.gl.deleteShader(this.vertShader);
     this.gl.deleteShader(this.fragShader);

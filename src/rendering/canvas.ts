@@ -1,4 +1,3 @@
-import { Entity } from "../entity/entity.js";
 import { Game } from "../core/game.js";
 import { Matrix4 } from "../math/matrix4.js";
 import { RenderMesh, RenderModel } from "../mesh/mesh.js";
@@ -12,8 +11,9 @@ interface Dot {
 
 /** Encapsulates the game"s screen and all relevant functionality. */
 export class Canvas {
-  private readonly DOT_RESOLUTION: number = 7;
-  private readonly MAX_DOT_COUNT: number = 1000000;
+  private readonly DOT_RESOLUTION: number = 9;
+  private readonly MAX_DOT_COUNT: number = 200000;
+  private readonly DOT_FIELD_COUNT: number = 3 + 3 + 1; // (3 for position, 3 for normal, 1 for creation time)
 
   private element: HTMLCanvasElement;
   private gl: WebGL2RenderingContext;
@@ -42,7 +42,7 @@ export class Canvas {
   constructor() {
     this.element = document.getElementById("game-screen") as HTMLCanvasElement;
 
-    // Get gl2 or gl context
+    // Get gl2 context
     this.gl = this.element.getContext("webgl2") as WebGL2RenderingContext;
     if (!this.gl) throw new Error("Failed to get GL context.");
 
@@ -53,8 +53,6 @@ export class Canvas {
 
     // Set webgl settings
     this.gl.enable(this.gl.DEPTH_TEST);
-    // this.gl.enable(this.gl.BLEND);
-    // this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
     this.updateDimensions();
 
@@ -72,19 +70,21 @@ export class Canvas {
   public async init(): Promise<void> {
     this.initBuffers();
 
-    // Wait for shader to load the vertex and fragment shaders
+    // Wait for shader to load their vertex and fragment shaders
     await Promise.all([
       this.shapeShader.initShaders("res/shaders/shapeVertex.glsl", "res/shaders/shapeFragment.glsl"),
       this.dotShader.initShaders("res/shaders/dotVertex.glsl", "res/shaders/dotFragment.glsl"),
       this.endScreenShader.initShaders("res/shaders/staticVertex.glsl", "res/shaders/staticFragment.glsl")
     ]);
 
+    // Create shape shader attribute and uniforms
     this.shapeShader.use();
     this.shapeShader.createAttrib("vertexPos");
     this.shapeShader.createUniform("meshTransform");
     this.shapeShader.createUniform("viewMatrix");
     this.shapeShader.createUniform("projectionMatrix");
 
+    // Create dot shader attributes and uniforms
     this.dotShader.use();
     this.dotShader.createAttrib("vertexPos");
     this.dotShader.createAttrib("dotPos");
@@ -95,16 +95,16 @@ export class Canvas {
     this.dotShader.createUniform("lightSource");
     this.dotShader.createUniform("time");
 
+    // Create end screen attribute and uniform
     this.endScreenShader.use();
     this.endScreenShader.createAttrib("vertexPos");
     this.endScreenShader.createUniform("time");
-
-    this.endScreenShader.setAttribBuffer("vertexPos", this.screenRectBuffer, 2, 0, 0);
   }
 
   /**
    * Creates a webgl buffer with relevant data.
-   * @param data The `Float32Array` buffer data.
+   * @param data The typed array buffer data.
+   * @param index Whether or not the buffer is an element array buffer or a regular array buffer.
    * @returns A webgl buffer.
    */
   public createBuffer(data: Float32Array | Uint16Array, index?: boolean): WebGLBuffer {
@@ -119,6 +119,13 @@ export class Canvas {
     return buffer;
   }
 
+  /**
+   * Modifies an existing buffer with new data.
+   * @param buffer The existing buffer.
+   * @param data The new data.
+   * @param offset The data offset.
+   * @param index Whether or not the buffer is an element array buffer or a regular array buffer.
+   */
   public modifyBuffer(buffer: WebGLBuffer, data: Float32Array | Uint16Array, offset: number, index?: boolean): void {
     const type: number = index ? this.gl.ELEMENT_ARRAY_BUFFER : this.gl.ARRAY_BUFFER;
 
@@ -126,6 +133,12 @@ export class Canvas {
     this.gl.bufferSubData(type, offset * (index ? Uint16Array.BYTES_PER_ELEMENT : Float32Array.BYTES_PER_ELEMENT), data);
   }
 
+  /**
+   * Clears all the data from an existing buffer.
+   * @param buffer The existing buffer.
+   * @param size The buffer's size.
+   * @param index Whether or not the buffer is an element array buffer or a regular array buffer.
+   */
   public clearBuffer(buffer: WebGLBuffer, size: number, index?: boolean): void {
     const type: number = index ? this.gl.ELEMENT_ARRAY_BUFFER : this.gl.ARRAY_BUFFER;
 
@@ -135,16 +148,17 @@ export class Canvas {
 
   /**
    * Deletes an existing webgl buffer.
-   * @param buffer The buffer to be deleted.
+   * @param buffer The buffer being deleted.
    */
   public deleteBuffer(buffer: WebGLBuffer): void {
     this.gl.deleteBuffer(buffer);
   }
 
-  /** Creates the universal vertex buffer to be used by all sprites, being a square with width and height 1. */
+  /** Initializes all buffers. */
   private initBuffers(): void {
     const dotVertexArray: Float32Array = new Float32Array(this.DOT_RESOLUTION * 3);
 
+    // Create a circle with the resolution constant
     for (let i = 0; i < this.DOT_RESOLUTION; i++) {
       const t: number = 2 * Math.PI * i / this.DOT_RESOLUTION;
 
@@ -154,7 +168,7 @@ export class Canvas {
     }
 
     this.dotVertexBuffer = this.createBuffer(dotVertexArray);
-    this.dotBuffer = this.createBuffer(new Float32Array(this.MAX_DOT_COUNT * (3 + 3 + 1))); // 3 for position, normal and 1 for time
+    this.dotBuffer = this.createBuffer(new Float32Array(this.MAX_DOT_COUNT * this.DOT_FIELD_COUNT));
 
     this.screenRectBuffer = this.createBuffer(new Float32Array([
       -1, -1,
@@ -164,11 +178,7 @@ export class Canvas {
     ]));
   }
 
-  public createDot(position: Vector3, normal: Vector3): void {
-    this.dotQueue.push({ position, normal });
-  }
-
-  /** Updates the canvas dimensions and webgl viewport based on its element"s properties. */
+  /** Updates the canvas dimensions and webgl viewport based on its element's properties. */
   private updateDimensions(): void {
     this.width = this.element.clientWidth;
     this.height = this.element.clientHeight;
@@ -180,6 +190,53 @@ export class Canvas {
     this.gl.viewport(0, 0, this.width, this.height);
   }
 
+  /**
+   * Queue a dot to be added to the buffer the next render call.
+   * @param position The dot position.
+   * @param normal The dot normal.
+   */
+  public createDot(position: Vector3, normal: Vector3): void {
+    this.dotQueue.push({ position, normal });
+  }
+
+  /** Dequeues all dots and adds them to the dot buffer. */
+  private emptyDotQueue(): void {
+    const dotData: Float32Array = new Float32Array(this.dotQueue.length * this.DOT_FIELD_COUNT);
+    let dotCount: number = 0;
+
+    // Add all dots to the data array
+    for (let i = 0; i < this.dotQueue.length; i++) {
+      if (i >= this.MAX_DOT_COUNT) break;
+
+      const dot: Dot = this.dotQueue[i];
+      const start: number = i * this.DOT_FIELD_COUNT;
+
+      dotData[start] = dot.position.x;
+      dotData[start + 1] = dot.position.y;
+      dotData[start + 2] = dot.position.z;
+
+      dotData[start + 3] = dot.normal.x;
+      dotData[start + 4] = dot.normal.y;
+      dotData[start + 5] = dot.normal.z;
+
+      dotData[start + 6] = Game.instance.elapsedTime;
+
+      dotCount++;
+    }
+
+    if (this.currentDot + dotCount > this.MAX_DOT_COUNT) this.currentDot = 0; // Reset the current dot to zero if the dots will exceed buffer size
+
+    this.modifyBuffer(this.dotBuffer, dotData, this.currentDot * this.DOT_FIELD_COUNT);
+
+    this.currentDot += dotCount; // Add the dot count to the current dot
+    this.dotCount = Math.min(this.dotCount + dotCount, this.MAX_DOT_COUNT); // Cap dot count at max
+    this.dotQueue.length = 0; // Clear queue
+  }
+
+  /**
+   * Adds a model to the rendering map.
+   * @param model The model being registered.
+   */
   public registerModel(model: RenderModel): void {
     const models: Set<RenderModel> = this.renderModels.get(model.mesh) || new Set();
     if (models.size === 0) this.renderModels.set(model.mesh, models);
@@ -187,6 +244,10 @@ export class Canvas {
     models.add(model);
   }
 
+  /**
+   * Removes a model from the rendering map.
+   * @param model The model being removed.
+   */
   public unregisterModel(model: RenderModel): void {
     const models: Set<RenderModel> | undefined = this.renderModels.get(model.mesh);
     if (!models) return;
@@ -196,6 +257,7 @@ export class Canvas {
     if (models.size === 0) this.renderModels.delete(model.mesh);
   }
 
+  /** Draws the game models and dots to the canvas. */
   private renderGame(): void {
     const viewMatrix: Matrix4 = Game.instance.camera.getViewMatrix();
     const projectionMatrix: Matrix4 = Game.instance.camera.getProjectionMatrix(this.aspectRatio);
@@ -205,44 +267,19 @@ export class Canvas {
     this.shapeShader.setUniformMatrix("viewMatrix", viewMatrix);
     this.shapeShader.setUniformMatrix("projectionMatrix", projectionMatrix);
 
+    // Bind and draw all render models
     this.renderModels.forEach((models: Set<RenderModel>, mesh: RenderMesh) => {
-      this.shapeShader.setAttribBuffer("vertexPos", mesh.vertexBuffer, 3, 0, 0);
-      this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
+      this.shapeShader.setAttribBuffer("vertexPos", mesh.vertexBuffer, 3); // Set the vertex pos attribute
+      this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer); // Bind the index buffer
 
       for (const model of models) {
-        this.shapeShader.setUniformMatrix("meshTransform", model.transformation);
+        this.shapeShader.setUniformMatrix("meshTransform", model.transformation); // Set model transform
 
         this.gl.drawElements(this.gl.TRIANGLES, mesh.indexCount, this.gl.UNSIGNED_SHORT, 0);
       }
     });
 
-    if (this.dotQueue.length > 0) {
-      const dotData: Float32Array = new Float32Array(this.dotQueue.length * (3 + 3 + 1));
-
-      for (let i = 0; i < this.dotQueue.length; i++) {
-        if (i >= this.MAX_DOT_COUNT) break;
-
-        const dot: Dot = this.dotQueue[i];
-
-        dotData[i * 7] = dot.position.x;
-        dotData[i * 7 + 1] = dot.position.y;
-        dotData[i * 7 + 2] = dot.position.z;
-
-        dotData[i * 7 + 3] = dot.normal.x;
-        dotData[i * 7 + 4] = dot.normal.y;
-        dotData[i * 7 + 5] = dot.normal.z;
-
-        dotData[i * 7 + 6] = Game.instance.elapsedTime;
-      }
-
-      if (this.currentDot + this.dotQueue.length > this.MAX_DOT_COUNT) this.currentDot = 0;
-
-      this.modifyBuffer(this.dotBuffer, dotData, this.currentDot * (3 + 3 + 1));
-
-      this.currentDot += this.dotQueue.length;
-      this.dotCount = Math.min(this.dotCount + this.dotQueue.length, this.MAX_DOT_COUNT);
-      this.dotQueue.length = 0;
-    }
+    if (this.dotQueue.length > 0) this.emptyDotQueue();
 
     this.dotShader.use();
 
@@ -251,35 +288,37 @@ export class Canvas {
     this.dotShader.setUniformFloat("time", Game.instance.elapsedTime);
     this.dotShader.setUniformVector("lightSource", Game.instance.camera.position);
 
-    this.dotShader.setAttribBuffer("vertexPos", this.dotVertexBuffer, 3, 0, 0);
-    this.dotShader.setAttribBuffer("dotPos", this.dotBuffer, 3, 7, 0, 1);
-    this.dotShader.setAttribBuffer("dotNormal", this.dotBuffer, 3, 7, 3, 1);
-    this.dotShader.setAttribBuffer("dotTime", this.dotBuffer, 1, 7, 6, 1);
+    this.dotShader.setAttribBuffer("vertexPos", this.dotVertexBuffer, 3);
+    this.dotShader.setAttribBuffer("dotPos", this.dotBuffer, 3, this.DOT_FIELD_COUNT, 0, 1);
+    this.dotShader.setAttribBuffer("dotNormal", this.dotBuffer, 3, this.DOT_FIELD_COUNT, 3, 1);
+    this.dotShader.setAttribBuffer("dotTime", this.dotBuffer, 1, this.DOT_FIELD_COUNT, 6, 1);
 
     this.gl.drawArraysInstanced(this.gl.TRIANGLE_FAN, 0, this.DOT_RESOLUTION, this.dotCount);
   }
 
+  /** Draws the end screen to the canvas. */
   private renderEndScreen(): void {
     this.endScreenShader.use();
-    this.endScreenShader.setAttribBuffer("vertexPos", this.screenRectBuffer, 2, 0, 0);
+    this.endScreenShader.setAttribBuffer("vertexPos", this.screenRectBuffer, 2);
     this.endScreenShader.setUniformFloat("time", Game.instance.elapsedTime);
 
     this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
   }
 
-  /** Draw all sprite models and collision objects to the canvas. */
+  /** Draw everything to the canvas depending on the game state. */
   public render(): void {
-    // Clear screen
+    // Clear the screen
     this.gl.clearColor(0, 0, 0, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT | this.gl.STENCIL_BUFFER_BIT);
 
-    if (this._endScreenActive) this.renderEndScreen();
-    else this.renderGame();
+    if (this._endScreenActive) this.renderEndScreen(); // Render the end screen if it is active
+    else this.renderGame(); // Render the game otherwise
   }
 
   public reset(): void {
-    this.clearBuffer(this.dotBuffer, this.MAX_DOT_COUNT);
+    this.clearBuffer(this.dotBuffer, this.MAX_DOT_COUNT * this.DOT_FIELD_COUNT); // Clear the dot buffer
 
+    // Reset the dot counts
     this.currentDot = 0;
     this.dotCount = 0;
   }

@@ -26,7 +26,7 @@ export class Monster extends Entity {
   private chasingTimer: Timer = new Timer(10);
   private roamChangeTimer: Timer;
 
-  private heartbeatEmitter: AudioEmitter;
+  private heartbeatEmitter: AudioEmitter = Game.instance.audioManager.get("heartbeat").createEmitter();
   private screamAudio: AudioEmission;
 
   constructor(private model: RenderModel, private target: Player) {
@@ -38,14 +38,13 @@ export class Monster extends Entity {
         1.5
       )
     );
-
-    this.heartbeatEmitter = Game.instance.audioManager.get("heartbeat").createEmitter();
   }
 
   public get aggression(): number {
     return this._aggression;
   }
 
+  /** Handle monster aiming and moving based on player target. */
   public prePhysicsBehaviour(): void {
     if (this.chasingTimer.active) {
       this.moveSpeed = this.CHASE_SPEED;
@@ -66,25 +65,30 @@ export class Monster extends Entity {
     }
   }
 
+  /**
+   * Handle the monster aggression and killing logic, and update the monster model transformation.
+   * @param deltaTime The time passed.
+   */
   public postPhysicsBehaviour(deltaTime: number): void {
     const distance: number = this.target.position.subtract(this.position).magnitude;
 
     if (!this.chasingTimer.active) {
       let aggressionChangeRate: number = 0;
 
+      // Handle aggression if target is moving nearby
       if (this.target.moveDirection.magnitude > 0 && distance < this.MOVE_AGGRO_RANGE) {
         aggressionChangeRate += this.MOVE_AGGRO_RATE * (1 - distance / this.MOVE_AGGRO_RANGE) * this.target.moveSpeed / 16;
       }
 
-      if (this.target.scanning) {
+      if (this.target.scanning) { // If target is scanning
         const scanAngleDirection: Vector3 = this.position.subtract(this.target.scanOrigin);
         const scanAngleDifference: number = Math.acos(this.target.aimDirection.dot(scanAngleDirection.unit));
 
-        if (scanAngleDifference <= this.target.scanAngle) {
-          const ray: Ray = new Ray(this.target.position, scanAngleDirection.unit);
+        if (scanAngleDifference <= this.target.scanAngle) { // If monster is within scan cone range
+          const ray: Ray = new Ray(this.target.position, scanAngleDirection.unit); // Create ray from target to monster
           const info: RaycastInfo | undefined = Game.instance.bvh.raycast(ray);
 
-          if (!info || scanAngleDirection.magnitude < info.t) {
+          if (!info || scanAngleDirection.magnitude < info.t) { // Check if anything is in the way
             aggressionChangeRate += this.SCAN_AGGRO_RATE;
           }
         }
@@ -94,7 +98,7 @@ export class Monster extends Entity {
         this.recentlyAggressed.start();
         this._aggression = Math.min(this._aggression + aggressionChangeRate * deltaTime, this.MAX_AGGRESSION);
 
-        if (this._aggression === this.MAX_AGGRESSION) {
+        if (this._aggression === this.MAX_AGGRESSION) { // Start chasing if aggression is at max
           this.chasingTimer.start();
           this._aggression = 0;
 
@@ -108,20 +112,22 @@ export class Monster extends Entity {
       }
 
     } else {
-      if (distance < this.KILL_RANGE) Game.instance.end();
+      if (distance < this.KILL_RANGE) Game.instance.end(); // End the game if close enough to the target
     }
 
     const aggressionPercent: number = this._aggression / this.MAX_AGGRESSION;
 
+    // Increase heartbeat intensity as aggression increases
     this.heartbeatEmitter.volume = 1 + 0.5 * aggressionPercent;
     this.heartbeatEmitter.frequency = 1 + 1.3 * aggressionPercent;
 
     if (this._aggression > 0 && !this.chasingTimer.active) this.heartbeatEmitter.start();
     else this.heartbeatEmitter.stop();
 
-    this.model.transformation = Matrix4.fromPosition(this.position).multiply(this.faceMatrix);
+    this.model.transformation = Matrix4.fromPosition(this.position).multiply(this.faceMatrix); // Update monster model
   }
 
+  /** Destroy audio instances tied to the monster. */
   public destroy(): void {
     this.heartbeatEmitter.stop();
     this.screamAudio.stop();

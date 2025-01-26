@@ -22,7 +22,7 @@ export class Player extends Entity {
   private readonly STAMINA_DRAIN_RATE: number = 8;
   private readonly STAMINA_FILL_RATE = 5;
 
-  private _stamina: number;
+  private _stamina: number = this.MAX_STAMINA;
   private jumpTimer: Timer = new Timer(1);
 
   private _scanning: boolean = false;
@@ -30,7 +30,7 @@ export class Player extends Entity {
   private _scanAngle: number = this.MIN_SCAN_ANGLE;
   private scanTimer: Timer = new Timer(0.05);
 
-  private footstepEmitter: AudioEmitter;
+  private footstepEmitter: AudioEmitter = Game.instance.audioManager.get("footstep").createEmitter();
   private scanAudio?: AudioEmission;
 
   constructor() {
@@ -42,10 +42,6 @@ export class Player extends Entity {
         1.5
       )
     );
-
-    this._stamina = this.MAX_STAMINA;
-
-    this.footstepEmitter = Game.instance.audioManager.get("footstep").createEmitter();
   }
 
   public get stamina(): number {
@@ -60,10 +56,15 @@ export class Player extends Entity {
     return this._scanAngle;
   }
 
+  /** Returns the origin position of the last scan's rays. */
   public get scanOrigin(): Vector3 {
     return this._scanOrigin;
   }
 
+  /**
+   * Handle aim and move direction inputs, sprinting and jumping.
+   * @param deltaTime The time passed.
+   */
   public prePhysicsBehaviour(deltaTime: number): void {
     let inputDir: Vector3 = Vector3.zero;
 
@@ -73,7 +74,7 @@ export class Player extends Entity {
     if (Game.instance.controller.controlActive(Control.moveR)) inputDir = inputDir.add(Vector3.x);
 
     this.aimDirection = Game.instance.camera.rotation.lookVector;
-    this.moveDirection = this.faceMatrix.apply(inputDir);
+    this.moveDirection = this.faceMatrix.apply(inputDir); // Apply facing matrix to input direction to get proper rotation directions
 
     if (Game.instance.controller.controlActive(Control.jump) && this.onFloor && !this.jumpTimer.active) {
       this.jumpTimer.start();
@@ -111,10 +112,8 @@ export class Player extends Entity {
     else this.footstepEmitter.stop();
   }
 
+  /** Handle player scanning. */
   public postPhysicsBehaviour(): void {
-    const direction: Vector3 = this.aimDirection;
-    const perpendicular: Vector3 = direction.orthogonal();
-
     const scrollAmount: number = Game.instance.controller.scrollMovement;
     this._scanAngle = Util.clamp(this._scanAngle + scrollAmount, this.MIN_SCAN_ANGLE, this.MAX_SCAN_ANGLE);
 
@@ -130,12 +129,13 @@ export class Player extends Entity {
           const roll: number = 2 * Math.PI * Math.random();
           const pitch: number = this._scanAngle * Math.random();
   
-          const pitchMatrix = Matrix4.fromAxisAngle(perpendicular, pitch);
-          const rollMatrix = Matrix4.fromAxisAngle(this.aimDirection, roll);
+          const pitchMatrix = Matrix4.fromAxisAngle(this.aimDirection.perpendicular, pitch); // Get axis angle rotation matrix for pitching the direction
+          const rollMatrix = Matrix4.fromAxisAngle(this.aimDirection, roll); // Get the axis angle rotation around the direction vector
+
+          // Apply pitch matrix and roll matrix to direction to get random cone range effect
+          const rayDirection: Vector3 = rollMatrix.apply(pitchMatrix.apply(this.aimDirection));
   
-          const direction: Vector3 = rollMatrix.apply(pitchMatrix.apply(this.aimDirection));
-  
-          const ray = new Ray(this._scanOrigin, direction);
+          const ray = new Ray(this._scanOrigin, rayDirection);
           const info: RaycastInfo | undefined = Game.instance.bvh.raycast(ray);
     
           if (info) Game.instance.canvas.createDot(info.position, info.normal);
@@ -152,6 +152,7 @@ export class Player extends Entity {
     }
   }
 
+  /** Destroy audio instances tied to the player. */
   public destroy(): void {
     this.footstepEmitter.stop();
     if (this.scanAudio) this.scanAudio.stop();
