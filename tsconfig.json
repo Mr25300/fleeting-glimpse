@@ -6,7 +6,7 @@
     "sourceMap": true,
     "strict": true,
     "strictPropertyInitialization": false,
-    "module": "NodeNext",
+    "module": "ESNext",
     "moduleResolution": "bundler"
   },
   "include": [
