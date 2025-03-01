@@ -2,15 +2,14 @@
   "compilerOptions": {
     "target": "es6",
     "rootDir": "./src",
-    "outDir": "./dist", //optionally use “” to not use an output folder
+    "outDir": "./dist",
     "sourceMap": true,
     "strict": true,
     "strictPropertyInitialization": false,
     "module": "ESNext",
     "moduleResolution": "bundler"
-    // "types": ["node"]
   },
   "include": [
     "src/**/*"
-  ],
+  ]
 }
