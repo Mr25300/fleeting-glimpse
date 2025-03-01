@@ -95,7 +95,7 @@ export class UIManager {
       count = (count + 1) % 4;
     }
 
-    const interval: number = setInterval(handleLoadLoop, 200);
+    const interval: ReturnType<typeof setInterval> = setInterval(handleLoadLoop, 200);
     handleLoadLoop();
 
     await loadPromise;
