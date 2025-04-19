@@ -59,7 +59,7 @@ export class Matrix4 {
    * @param angle The angle amount to rotate by. 
    * @returns The rotation matrix.
    */
-  public static fromEurlerAngleY(angle: number): Matrix4 {
+  public static fromEulerAngleY(angle: number): Matrix4 {
     const cos: number = Math.cos(angle);
     const sin: number = Math.sin(angle);
 
@@ -97,7 +97,7 @@ export class Matrix4 {
    */
   public static fromEulerAngles(x: number, y: number, z: number): Matrix4 {
     const matrixX: Matrix4 = this.fromEulerAngleX(x);
-    const matrixY: Matrix4 = this.fromEurlerAngleY(y);
+    const matrixY: Matrix4 = this.fromEulerAngleY(y);
     const matrixZ: Matrix4 = this.fromEulerAngleZ(z);
 
     return matrixY.multiply(matrixX).multiply(matrixZ);
